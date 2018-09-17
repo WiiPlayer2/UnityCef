@@ -1,0 +1,116 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using Xilium.CefGlue;
+using UnityCef.Companion.Cef;
+using System.Drawing.Imaging;
+
+namespace UnityCef.Companion
+{
+    class Program
+    {
+        public static void ShowValue(string name, object value, TextWriter output = null)
+        {
+            var fgColor = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.Green;
+
+            output = output ?? Console.Out;
+
+            Console.WriteLine($"=== {name} ===");
+            foreach(var s in (value ?? "<null>").ToString().Split('\n'))
+            {
+                Console.WriteLine($"\t{s}");
+            }
+
+            Console.ForegroundColor = fgColor;
+        }
+
+        public static void ShowValues<T>(string name, IEnumerable<T> values, TextWriter output = null)
+        {
+            ShowValue(name, string.Join("\n", values.Select(o => o.ToString())));
+        }
+
+        static int Main(string[] args)
+        {
+            ShowValues("Command Line Arguments", args);
+            ShowValue("Working Directory", Environment.CurrentDirectory);
+
+            var mainProcess = false;
+
+            try
+            {
+                CefRuntime.Load("../../../../../cef_windows64");
+
+                var mainArgs = new CefMainArgs(args);
+                var app = new App();
+
+                var exitCode = CefRuntime.ExecuteProcess(mainArgs, app, IntPtr.Zero);
+                ShowValue("Exit Code", exitCode);
+                if (exitCode >= 0)
+                    return exitCode;
+
+                mainProcess = true;
+
+                var settings = new CefSettings()
+                {
+                    MultiThreadedMessageLoop = false,
+                    WindowlessRenderingEnabled = true,
+                    LogFile = "cef.log",
+                    LogSeverity = CefLogSeverity.Info,
+                };
+
+                CefRuntime.Initialize(mainArgs, settings, app, IntPtr.Zero);
+                Run();
+                CefRuntime.RunMessageLoop();
+                CefRuntime.Shutdown();
+
+                return 0;
+            }
+            catch(Exception e)
+            {
+                ShowValue("Exception", e, Console.Error);
+                return 1;
+            }
+            finally
+            {
+                if (mainProcess)
+                {
+                    ShowValue("Exit", "[Press any key to exit]");
+                    Console.ReadKey(true);
+                }
+            }
+        }
+
+        static async void Run()
+        {
+            await Task.Run(async () =>
+            {
+                var info = CefWindowInfo.Create();
+                info.WindowlessRenderingEnabled = true;
+                info.SetAsWindowless(IntPtr.Zero, true);
+
+                var client = new Client(800, 6500);
+
+                var settings = new CefBrowserSettings()
+                {
+                    JavaScript = CefState.Enabled,
+                    WebGL = CefState.Enabled,
+                    WebSecurity = CefState.Disabled,
+                    WindowlessFrameRate = 30,
+                };
+
+                CefBrowserHost.CreateBrowser(info, client, settings, "https://map.leagueoflegends.com/en_US");
+
+                while (true)
+                {
+                    await Task.Delay(10000);
+                    client.GetImage()?.Save(@"D:\tmp\screenshot.png", ImageFormat.Png);
+                }
+            });
+        }
+    }
+}
