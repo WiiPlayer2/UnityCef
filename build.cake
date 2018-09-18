@@ -1,5 +1,5 @@
 #load cake/vars.cake
-//#module nuget:?package=Cake.Parallel.Module&version=0.20.3
+//#module nuget:file:///d:/nuget/?package=Cake.Parallel.Module
 #addin nuget:?package=Cake.Git
 #addin nuget:?package=SharpZipLib
 #addin nuget:?package=Cake.Compression
@@ -23,8 +23,12 @@ var target = Argument("target", "Default");
 
 Setup(ctx =>
 {
-   // Executed BEFORE the first task.
-   Information("Running tasks...");
+    // Executed BEFORE the first task.
+    Information("Running tasks...");
+
+    var fullCefDownloadPath = System.IO.Path.GetFullPath(cef_download_dir);
+    if (fullCefDownloadPath.Length >= 35)
+        throw new ArgumentException($"Path too long (>= 35 characters, full path: {fullCefDownloadPath})", nameof(cef_download_dir));
 });
 
 Teardown(ctx =>
@@ -42,6 +46,50 @@ Task("tmp-create")
     EnsureDirectoryExists("./tmp");
 });
 
+Task("tmp-clean")
+.IsDependentOn("tmp-create")
+.Does(() =>
+{
+    CleanDirectory("./tmp");
+})
+.OnError(exception =>
+{
+    Warning("Failed to clean directory the normal way.");
+    Warning("Initiating force clean...");
+
+    var dirInfo = new DirectoryInfo("./tmp");
+    foreach(var f in dirInfo.EnumerateFiles("*", SearchOption.AllDirectories))
+    {
+        try
+        {
+            if(f.Attributes.HasFlag(FileAttributes.ReadOnly))
+                f.Attributes = f.Attributes & ~FileAttributes.ReadOnly;
+            f.Delete();
+        }
+        catch
+        {
+            Information(f.FullName);
+            Information(f.Attributes);
+            throw;
+        }
+    }
+    foreach(var d in dirInfo.EnumerateDirectories("*", SearchOption.AllDirectories))
+    {
+        try
+        {
+            if(d.Attributes.HasFlag(FileAttributes.ReadOnly))
+                d.Attributes = d.Attributes & ~FileAttributes.ReadOnly;
+            d.Delete();
+        }
+        catch
+        {
+            Information(d.FullName);
+            Information(d.Attributes);
+            throw;
+        }
+    }
+});
+
 // cef ////////////////////////////////////////////////////////////////////////
 Task("cef-update")
 .Does(() => {
@@ -49,6 +97,24 @@ Task("cef-update")
     GitCheckout("./cef", $"origin/{cef_branch}");
     GitReset("./cef", GitResetMode.Hard);
     GitClean("./cef");
+});
+
+Task("cef-automate-git")
+.IsDependentOn("tmp-create")
+.Does(() => {
+    EnsureDirectoryExists(cef_download_dir);
+    DownloadFile("https://bitbucket.org/chromiumembedded/cef/raw/master/tools/automate/automate-git.py", "./tmp/automate-git.py");
+    //StartProcess(python27_path, $"./tmp/automate-git.py \"--download-dir={cef_download_dir}\" --branch={cef_branch} --no-build");
+    StartProcess(python27_path, new ProcessSettings
+    {
+        Arguments = $"./tmp/automate-git.py \"--download-dir={cef_download_dir}\" --branch={cef_branch} --force-build --force-distrib --x64-build --no-debug-build",
+        EnvironmentVariables = new Dictionary<string, string>
+            {
+                { "GN_DEFINES", "is_official_build=true" },
+                { "GYP_MSVS_VERSION", "2017" },
+                { "CEF_ARCHIVE_FORMAT", "tar.bz2" },
+            },
+    });
 });
 
 Task("cef-download")
@@ -80,8 +146,8 @@ Task("cef-copy")
     CleanDirectory(cefOutDir);
     CopyDirectory($"{cefDir}/Resources", cefOutDir);
     CopyDirectory($"{cefDir}/Release", cefOutDir);
-    MoveFile($"{cefOutDir}/libcef.dll", $"{cefOutDir}/libcef-unity.dll");
-    MoveFile($"{cefOutDir}/libcef.lib", $"{cefOutDir}/libcef-unity.lib");
+    //MoveFile($"{cefOutDir}/libcef.dll", $"{cefOutDir}/libcef-unity.dll");
+    //MoveFile($"{cefOutDir}/libcef.lib", $"{cefOutDir}/libcef-unity.lib");
 });
 
 // cefglue ///////////////////////////////////////////////////////////////////
@@ -147,6 +213,7 @@ Task("cefglue-build")
 
 Task("cefglue-copy")
 .IsDependentOn("cefglue-build")
+.WithCriteria(false) //TODO: Maybe remove task
 .Does(() => {
     Information("Copy binaries to Assets...");
     CopyFile("./cefglue/CefGlue/bin/Release/Xilium.CefGlue.dll", "./Assets/UnityCef/Xilium.CefGlue.dll");
@@ -163,11 +230,12 @@ Task("companion-build")
             .SetPlatformTarget(PlatformTarget.x64));
 });
 
+//TODO: Copy app too
 Task("companion-copy")
 .IsDependentOn("companion-build")
 .Does(() => {
-    Information("Copying companion app...");
-    CopyFile("./UnityCef.Companion/UnityCef.Companion/bin/Release/UnityCef.Companion.exe", "./Assets/UnityCef/UnityCef.Companion.exe");
+    Information("Copying companion binaries...");
+    CopyFile("./UnityCef.Companion/UnityCef.Shared/bin/Release/netstandard2.0/UnityCef.Shared.dll", "./Assets/UnityCef/UnityCef.Shared.dll");
 });
 
 // cake ////////////////////////////////////////////////////////////////////////////
@@ -179,7 +247,8 @@ Task("cake-vars")
         .WithToken("cef_branch", cef_branch)
         .WithToken("cefglue_branch", cefglue_branch)
         .WithToken("msbuild_verbosity", msbuild_verbosity)
-        .WithToken("skip_update", skip_update)
+        .WithToken("skip_update", skip_update.ToString().ToLower())
+        .WithToken("skip_cef_build", skip_cef_build.ToString().ToLower())
         .ToString();
     FileWriteText("./cake/vars.sample.cake", text);
 });

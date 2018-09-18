@@ -1,16 +1,26 @@
 ﻿using System;
-using tiesky.com;
 using System.Security.Cryptography;
 using System.Text;
 using System.IO;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
+using System.Diagnostics;
 
 namespace UnityCef.Shared
 {
     public class IPC : IDisposable
     {
+        public class MethodAttribute : Attribute
+        {
+            public MethodAttribute(string methodName = null)
+            {
+                MethodName = methodName;
+            }
+
+            public string MethodName { get; set; }
+        }
+
         public enum ValueType : byte
         {
             Null = 0x00,
@@ -20,15 +30,17 @@ namespace UnityCef.Shared
             Array,
         }
 
-        private static readonly Guid ipcGuid = Guid.Parse("{1A96751A-9E69-41D2-8DCA-6C9926990458}");
+        private const string IPC_DEFAULT_GUID = "{1A96751A-9E69-41D2-8DCA-6C9926990458}";
 
-        private readonly SharmIpc ipc;
+        private readonly IInternalIPC ipc;
         private readonly Dictionary<string, Func<object[], object[]>> methods;
 
-        public IPC()
+        public IPC(IInternalIPC ipc)
         {
             methods = new Dictionary<string, Func<object[], object[]>>();
-            ipc = new SharmIpc(ipcGuid.ToString(), OnCall);
+            //ipc = new SharmIpc(IPC_DEFAULT_GUID, OnCall);
+            ipc.SetCallback(OnCall);
+            this.ipc = ipc;
         }
 
         public void RegisterMethod(string methodName, Func<object[], object[]> method)
@@ -55,6 +67,17 @@ namespace UnityCef.Shared
         public void RegisterMethod(string methodName, Delegate method)
         {
             RegisterMethod(methodName, method.Target, method.Method);
+        }
+
+        public void RegisterObject(object obj)
+        {
+            foreach(var m in obj.GetType().GetMethods()
+                .Where(o => o.GetCustomAttribute<MethodAttribute>() != null))
+            {
+                var attr = m.GetCustomAttribute<MethodAttribute>();
+                attr.MethodName = attr.MethodName ?? m.Name;
+                RegisterMethod(attr.MethodName, obj, m);
+            }
         }
 
         #region I/O
@@ -182,6 +205,9 @@ namespace UnityCef.Shared
             }
             catch(Exception e)
             {
+                Debug.Fail(e.Message, e.ToString());
+                if(Debugger.IsAttached)
+                    Debugger.Break();
                 return Tuple.Create(false, new byte[0]);
             }
         }
@@ -202,12 +228,24 @@ namespace UnityCef.Shared
             }
         }
 
-        public object[] Call(string method, params object[] args)
+        public object[] Request(string method, params object[] args)
         {
             return InternalCall(method, args, data => ipc.RemoteRequest(data));
         }
 
-        public object[] LocalCall(string method, params object[] args)
+        public void Send(string method, params object[] args)
+        {
+            InternalCall(method, args, data =>
+            {
+                ipc.RemoteSend(data);
+                return Tuple.Create(true, new byte[]
+                {
+                    (byte)ValueType.Null,
+                });
+            });
+        }
+
+        public object[] LocalSend(string method, params object[] args)
         {
             return InternalCall(method, args, OnCall);
         }

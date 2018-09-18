@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Xilium.CefGlue;
+using UnityCef.Shared;
 using UnityCef.Companion.Cef;
 using System.Drawing.Imaging;
 
@@ -13,6 +14,9 @@ namespace UnityCef.Companion
 {
     class Program
     {
+        private static CompanionIPC ipc = new CompanionIPC(new IPC(new InternalPipeIPC(true)));
+        private static EventWaitHandle exitWait = new EventWaitHandle(false, EventResetMode.ManualReset);
+
         public static void ShowValue(string name, object value, TextWriter output = null)
         {
             var fgColor = Console.ForegroundColor;
@@ -57,17 +61,20 @@ namespace UnityCef.Companion
 
                 var settings = new CefSettings()
                 {
-                    MultiThreadedMessageLoop = false,
+                    MultiThreadedMessageLoop = true,
                     WindowlessRenderingEnabled = true,
                     LogFile = "cef.log",
                     LogSeverity = CefLogSeverity.Info,
                 };
 
                 CefRuntime.Initialize(mainArgs, settings, app, IntPtr.Zero);
-                Run();
-                CefRuntime.RunMessageLoop();
+                ipc.Ready();
+
+                exitWait.WaitOne();
+
                 CefRuntime.Shutdown();
 
+                Environment.Exit(0);
                 return 0;
             }
             catch(Exception e)
@@ -85,6 +92,11 @@ namespace UnityCef.Companion
             }
         }
 
+        public static void Exit()
+        {
+            exitWait.Set();
+        }
+
         static async void Run()
         {
             await Task.Run(async () =>
@@ -93,7 +105,7 @@ namespace UnityCef.Companion
                 info.WindowlessRenderingEnabled = true;
                 info.SetAsWindowless(IntPtr.Zero, true);
 
-                var client = new Client(800, 6500);
+                var client = new Client(800, 600);
 
                 var settings = new CefBrowserSettings()
                 {
@@ -103,11 +115,12 @@ namespace UnityCef.Companion
                     WindowlessFrameRate = 30,
                 };
 
-                CefBrowserHost.CreateBrowser(info, client, settings, "https://map.leagueoflegends.com/en_US");
+                CefBrowserHost.CreateBrowser(info, client, settings, "https://z0r.de/6830");
 
                 while (true)
                 {
                     await Task.Delay(10000);
+                    Console.WriteLine("Snap!");
                     client.GetImage()?.Save(@"D:\tmp\screenshot.png", ImageFormat.Png);
                 }
             });

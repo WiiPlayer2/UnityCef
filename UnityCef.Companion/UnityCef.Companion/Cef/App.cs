@@ -12,7 +12,8 @@ namespace UnityCef.Companion.Cef
         {
             if(string.IsNullOrEmpty(processType))
             {
-                commandLine.AppendSwitch("enable-media-stream", "true");
+                commandLine.AppendSwitch("enable-media-stream", "1");
+                commandLine.AppendSwitch("enable-system-flash", "1");
             }
         }
     }
