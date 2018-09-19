@@ -143,7 +143,7 @@ Task("cef-copy")
 .IsDependentOn("companion-copy")
 .IsDependentOn("cef-download")
 .DoesForEach(cefPlatforms, (platform) => {
-    Information($"Copy cef {platform} binaries...");
+    Information($"Copying cef {platform} binaries...");
     var cefDir = $"./tmp/cef_binary_{cef_version}_{platform}";
     var cefOutDir = $"./Assets/UnityCef/Companion/{platform}";
     CopyDirectory($"{cefDir}/Resources", cefOutDir);
