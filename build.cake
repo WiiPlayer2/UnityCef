@@ -44,10 +44,14 @@ Setup(ctx =>
         success = false;
     }
     if(!success)
-        throw new Exception("No valid path to Python 2.7 provided.");
+        throw new ArgumentException($"Invalid python2.7 path ({python27_path})", nameof(python27_path));
+
+    Information($"Checking Unity version \"{unity_version}\"...");
+    if(!TryGetUnityInstall(unity_version, out var __))
+        throw new ArgumentException($"Unity version \"{unity_version}\" not found", nameof(unity_version));
 
     Information("Running tasks...");
-    return;
+
     // Disabling this check for now until I figure out how to sucessfully compile cef on windows
     /*
     var fullCefDownloadPath = System.IO.Path.GetFullPath(cef_download_dir);
