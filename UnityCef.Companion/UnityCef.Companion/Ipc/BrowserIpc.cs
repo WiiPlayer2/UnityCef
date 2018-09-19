@@ -19,9 +19,10 @@ namespace UnityCef.Companion.Ipc
 
         public Client Client { get; private set; }
 
-        public void OnPaint(int width, int height, string sharedName)
+        [MessageIpc.Method]
+        public string GetSharedName()
         {
-            IPC.Send(Ipc("OnPaint"), width, height, sharedName);
+            return Client.RenderHandler.SharedName;
         }
     }
 }

@@ -21,10 +21,8 @@ public class BrowserTesting : MonoBehaviour
         yield return new WaitUntil(() => ipc.IsReady);
         Debug.Log("Ready");
 
-        var id = ipc.CreateBrowser(800, 800, "https://soundcloud.com/alstroemeria-records/arcd0067-popculture-9-xfade");
-        browserIpc = new BrowserIpc(ipc.IPC, id);
-
-        yield return new WaitUntil(() => browserIpc.Texture != null);
+        browserIpc = ipc.CreateBrowserWithIpc(1000, 1000, "https://soundcloud.com/alstroemeria-records/arcd0067-popculture-9-xfade");
+        browserIpc.Update();
         Renderer.material.mainTexture = browserIpc.Texture;
     }
 

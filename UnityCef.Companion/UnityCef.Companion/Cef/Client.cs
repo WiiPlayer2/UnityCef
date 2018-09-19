@@ -9,8 +9,7 @@ namespace UnityCef.Companion.Cef
     class Client : CefClient
     {
         private static Dictionary<int, Client> clients = new Dictionary<int, Client>();
-
-        private readonly RenderHandler renderHandler;
+        
         private readonly LifeSpanHandler lifeSpanHandler;
         private EventWaitHandle registerWait = new EventWaitHandle(false, EventResetMode.ManualReset);
 
@@ -18,7 +17,7 @@ namespace UnityCef.Companion.Cef
         {
             IPC = ipc;
 
-            renderHandler = new RenderHandler(this, renderWidth, renderHeight);
+            RenderHandler = new RenderHandler(this, renderWidth, renderHeight);
             lifeSpanHandler = new LifeSpanHandler(this);
         }
 
@@ -31,11 +30,13 @@ namespace UnityCef.Companion.Cef
 
         public BrowserIpc BrowserIPC { get; private set; }
 
+        public RenderHandler RenderHandler { get; private set; }
+
         public int Identifier { get; set; }
 
         public Image GetImage()
         {
-            return renderHandler.GetImage();
+            return RenderHandler.GetImage();
         }
 
         public void WaitForRegister()
@@ -60,7 +61,7 @@ namespace UnityCef.Companion.Cef
 
         protected override CefRenderHandler GetRenderHandler()
         {
-            return renderHandler;
+            return RenderHandler;
         }
 
         protected override CefLifeSpanHandler GetLifeSpanHandler()

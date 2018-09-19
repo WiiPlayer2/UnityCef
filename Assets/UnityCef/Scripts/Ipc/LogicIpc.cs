@@ -13,6 +13,12 @@ namespace UnityCef.Unity.Ipc
 
         public bool IsReady { get; private set; }
 
+        public BrowserIpc CreateBrowserWithIpc(int width, int height, string url = "")
+        {
+            var id = CreateBrowser(width, height, url);
+            return new BrowserIpc(IPC, id, width, height);
+        }
+
         public int CreateBrowser(int width, int height, string url = "")
         {
             return (int)IPC.Request("CreateBrowser", width, height, url)[0];

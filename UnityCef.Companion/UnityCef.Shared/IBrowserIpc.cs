@@ -6,6 +6,6 @@ namespace UnityCef.Shared
 {
     public interface IBrowserIpc
     {
-        void OnPaint(int width, int height, string sharedName);
+        string GetSharedName();
     }
 }

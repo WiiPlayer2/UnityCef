@@ -21,9 +21,20 @@ namespace UnityCef.Companion.Cef
             this.width = width;
             this.height = height;
             Client = client;
+            
+            imageData = new byte[width * height * 4];
+            sharedBuffer = new SharedArray<byte>(sharedMemGuid.ToString(), imageData.Length);
         }
 
         public Client Client { get; private set; }
+
+        public string SharedName
+        {
+            get
+            {
+                return sharedMemGuid.ToString();
+            }
+        }
 
         protected override CefAccessibilityHandler GetAccessibilityHandler()
         {
@@ -63,16 +74,9 @@ namespace UnityCef.Companion.Cef
         protected override void OnImeCompositionRangeChanged(CefBrowser browser, CefRange selectedRange, CefRectangle[] characterBounds)
         {
         }
-
-        //TODO: Implement OnPaint
+        
         protected override void OnPaint(CefBrowser browser, CefPaintElementType type, CefRectangle[] dirtyRects, IntPtr buffer, int width, int height)
         {
-            if (sharedBuffer == null)
-            {
-                imageData = new byte[width * height * 4];
-                sharedBuffer = new SharedArray<byte>(sharedMemGuid.ToString(), imageData.Length);
-            }
-
             this.width = width;
             this.height = height;
             Marshal.Copy(buffer, imageData, 0, imageData.Length);
@@ -80,8 +84,6 @@ namespace UnityCef.Companion.Cef
             sharedBuffer.AcquireWriteLock();
             sharedBuffer.Write(imageData);
             sharedBuffer.ReleaseWriteLock();
-
-            Client.BrowserIPC.OnPaint(width, height, sharedMemGuid.ToString());
         }
 
         protected override void OnPopupSize(CefBrowser browser, CefRectangle rect)

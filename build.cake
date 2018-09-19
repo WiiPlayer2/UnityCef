@@ -3,6 +3,7 @@
 #addin nuget:?package=Cake.Git
 #addin nuget:?package=SharpZipLib
 #addin nuget:?package=Cake.Compression
+#addin nuget:?package=Cake.Unity3D
 #addin "Cake.FileHelpers"
 
 var cefPlatforms = new string[]
@@ -220,14 +221,23 @@ Task("cefglue-copy")
 });
 
 // companion /////////////////////////////////////////////////////////////////////////////
+Task("companion-clean")
+.Does(()=>
+{
+    CleanDirectory("./UnityCef.Companion/UnityCef.Shared/bin");
+    CleanDirectory("./UnityCef.Companion/UnityCef.Companion/bin");
+});
+
 Task("companion-build")
+.IsDependentOn("companion-clean")
 .IsDependentOn("cefglue-build")
-.Does(() => {
-    Information("Building companion app...");
+.DoesForEach(new[]{ PlatformTarget.x86, PlatformTarget.x64 }, platform =>
+{
+    Information($"Building companion app ({platform})...");
     MSBuild("./UnityCef.Companion/UnityCef.Companion.sln", config =>
         config.SetConfiguration("Release")
             .SetVerbosity(msbuild_verbosity)
-            .SetPlatformTarget(PlatformTarget.x64));
+            .SetPlatformTarget(platform));
 });
 
 //TODO: Copy app too
@@ -237,6 +247,24 @@ Task("companion-copy")
     Information("Copying companion binaries...");
     CopyFile("./UnityCef.Companion/UnityCef.Shared/bin/Release/netstandard2.0/UnityCef.Shared.dll", "./Assets/UnityCef/UnityCef.Shared.dll");
     CopyFile("./UnityCef.Companion/packages/SharedMemory.2.1.0/lib/net45/SharedMemory.dll", "./Assets/UnityCef/SharedMemory.dll");
+
+    EnsureDirectoryExists("./Assets/UnityCef/Companion");
+    CleanDirectory("./Assets/UnityCef/Companion");
+    EnsureDirectoryExists("./Assets/UnityCef/Companion/windows32");
+    CopyDirectory("./UnityCef.Companion/UnityCef.Companion/bin/x86/Release", "./Assets/UnityCef/Companion/windows32");
+    EnsureDirectoryExists("./Assets/UnityCef/Companion/windows64");
+    CopyDirectory("./UnityCef.Companion/UnityCef.Companion/bin/x64/Release", "./Assets/UnityCef/Companion/windows64");
+});
+
+// unity ///////////////////////////////////////////////////////////////////////////
+Task("unity-package")
+.IsDependentOn("companion-copy")
+.IsDependentOn("cef-copy")
+.Does(() =>
+{
+    Information("Packing Unity asset package...");
+    TryGetUnityInstall(unity_version, out var unityPath);
+    StartProcess(unityPath, @"-projectPath ./ -quit -batchmode -exportPackage Assets/UnityCef UnityCef.unitypackage");
 });
 
 // cake ////////////////////////////////////////////////////////////////////////////
