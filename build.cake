@@ -27,6 +27,8 @@ Setup(ctx =>
     // Executed BEFORE the first task.
     Information("Running tasks...");
 
+    return;
+    // Disabling this check for now until I figure out how to sucessfully compile cef on windows
     var fullCefDownloadPath = System.IO.Path.GetFullPath(cef_download_dir);
     if (fullCefDownloadPath.Length >= 35)
         throw new ArgumentException($"Path too long (>= 35 characters, full path: {fullCefDownloadPath})", nameof(cef_download_dir));
