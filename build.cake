@@ -24,14 +24,36 @@ var target = Argument("target", "Default");
 
 Setup(ctx =>
 {
-    // Executed BEFORE the first task.
-    Information("Running tasks...");
+    Information("Checking python 2.7 path...");
+    if(string.IsNullOrWhiteSpace(python27_path))
+        python27_path = "python.exe";
+    var success = true;
+    try
+    {
+        var exitCode = StartProcess(python27_path, new ProcessSettings
+        {
+            Arguments = "-V",
+            Silent = true,
+            RedirectStandardError = true,
+        }, out var _, out var error);
+        if(!string.Join("\n", error).Contains("Python 2.7"))
+            success = false;
+    }
+    catch(System.ComponentModel.Win32Exception)
+    {
+        success = false;
+    }
+    if(!success)
+        throw new Exception("No valid path to Python 2.7 provided.");
 
+    Information("Running tasks...");
     return;
     // Disabling this check for now until I figure out how to sucessfully compile cef on windows
+    /*
     var fullCefDownloadPath = System.IO.Path.GetFullPath(cef_download_dir);
     if (fullCefDownloadPath.Length >= 35)
         throw new ArgumentException($"Path too long (>= 35 characters, full path: {fullCefDownloadPath})", nameof(cef_download_dir));
+    */
 });
 
 Teardown(ctx =>
