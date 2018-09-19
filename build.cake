@@ -223,6 +223,7 @@ Task("companion-build")
 .DoesForEach(new[]{ PlatformTarget.x86, PlatformTarget.x64 }, platform =>
 {
     Information($"Building companion app ({platform})...");
+    NuGetRestore("./UnityCef.Companion/UnityCef.Companion.sln");
     MSBuild("./UnityCef.Companion/UnityCef.Companion.sln", config =>
         config.SetConfiguration("Release")
             .SetVerbosity(msbuild_verbosity)
