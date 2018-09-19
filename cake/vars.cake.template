@@ -1,3 +1,4 @@
+var unity_version = "<%unity_version%>";
 var cef_version = "<%cef_version%>";
 var cef_branch = "<%cef_branch%>";
 var cefglue_branch = "<%cefglue_branch%>";

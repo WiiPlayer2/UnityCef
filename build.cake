@@ -278,6 +278,7 @@ Task("cake-vars")
         .WithToken("msbuild_verbosity", msbuild_verbosity)
         .WithToken("skip_update", skip_update.ToString().ToLower())
         .WithToken("skip_cef_build", skip_cef_build.ToString().ToLower())
+        .WithToken("unity_version", unity_version)
         .ToString();
     FileWriteText("./cake/vars.sample.cake", text);
 });
