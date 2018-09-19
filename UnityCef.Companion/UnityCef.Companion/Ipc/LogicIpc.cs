@@ -3,28 +3,24 @@ using System.Collections.Generic;
 using System.Text;
 using UnityCef.Companion.Cef;
 using UnityCef.Shared;
+using UnityCef.Shared.Ipc;
 using Xilium.CefGlue;
 
-namespace UnityCef.Companion
+namespace UnityCef.Companion.Ipc
 {
-    public class CompanionIPC : IIPC
+    public class LogicIpc : BaseIpc, ILogicIpc
     {
-        public CompanionIPC(IPC ipc)
-        {
-            IPC = ipc ?? throw new ArgumentNullException(nameof(ipc));
-            IPC.RegisterObject(this);
-        }
+        public LogicIpc(MessageIpc ipc)
+            : base(ipc) { }
 
-        public IPC IPC { get; set; }
-
-        [IPC.Method]
-        public void CreateBrowser(int width, int height, string url = "")
+        [MessageIpc.Method]
+        public int CreateBrowser(int width, int height, string url = "")
         {
             var info = CefWindowInfo.Create();
             info.WindowlessRenderingEnabled = true;
             info.SetAsWindowless(IntPtr.Zero, true);
 
-            var client = new Client(width, height);
+            var client = new Client(this, width, height);
 
             var settings = new CefBrowserSettings
             {
@@ -35,16 +31,9 @@ namespace UnityCef.Companion
             };
 
             CefBrowserHost.CreateBrowser(info, client, settings, url);
-        }
 
-        public void CreatedBrowser()
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Dispose()
-        {
-            IPC.Dispose();
+            client.WaitForRegister();
+            return client.Identifier;
         }
 
         public void Ready()
@@ -52,7 +41,7 @@ namespace UnityCef.Companion
             IPC.Send("Ready");
         }
 
-        [IPC.Method]
+        [MessageIpc.Method]
         public void Shutdown()
         {
             Program.Exit();

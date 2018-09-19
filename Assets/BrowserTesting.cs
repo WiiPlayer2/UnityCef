@@ -3,23 +3,35 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityCef.Shared;
 using UnityEngine;
+using UnityCef.Unity.Ipc;
+using UnityCef.Shared.Ipc;
 
 public class BrowserTesting : MonoBehaviour
 {
-    private UnityIPC ipc;
+    public Renderer Renderer;
+
+    private LogicIpc ipc;
+    private BrowserIpc browserIpc;
 
     // Use this for initialization
-    void Start ()
+    IEnumerator Start ()
     {
-        ipc = new UnityIPC(new IPC(new InternalPipeIPC(false)));
-        StartCoroutine(Init());
-    }
+        ipc = new LogicIpc(new MessageIpc(new TcpDataIpc(false)));
 
-    IEnumerator Init()
-    {
         yield return new WaitUntil(() => ipc.IsReady);
         Debug.Log("Ready");
-        ipc.CreateBrowser(800, 800, "https://z0r.de/6830");
+
+        var id = ipc.CreateBrowser(800, 800, "https://soundcloud.com/alstroemeria-records/arcd0067-popculture-9-xfade");
+        browserIpc = new BrowserIpc(ipc.IPC, id);
+
+        yield return new WaitUntil(() => browserIpc.Texture != null);
+        Renderer.material.mainTexture = browserIpc.Texture;
+    }
+
+    void Update()
+    {
+        if(browserIpc != null)
+            browserIpc.Update();
     }
 
     void OnDisable()

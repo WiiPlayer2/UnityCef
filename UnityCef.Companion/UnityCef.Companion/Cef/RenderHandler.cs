@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SharedMemory;
+using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
@@ -8,16 +9,21 @@ namespace UnityCef.Companion.Cef
 {
     class RenderHandler : CefRenderHandler
     {
+        private SharedArray<byte> sharedBuffer;
+        private readonly Guid sharedMemGuid = Guid.NewGuid();
         private int width;
         private int height;
 
         private byte[] imageData;
 
-        public RenderHandler(int width, int height)
+        public RenderHandler(Client client, int width, int height)
         {
             this.width = width;
             this.height = height;
+            Client = client;
         }
+
+        public Client Client { get; private set; }
 
         protected override CefAccessibilityHandler GetAccessibilityHandler()
         {
@@ -61,12 +67,21 @@ namespace UnityCef.Companion.Cef
         //TODO: Implement OnPaint
         protected override void OnPaint(CefBrowser browser, CefPaintElementType type, CefRectangle[] dirtyRects, IntPtr buffer, int width, int height)
         {
-            if (imageData == null)
+            if (sharedBuffer == null)
+            {
                 imageData = new byte[width * height * 4];
+                sharedBuffer = new SharedArray<byte>(sharedMemGuid.ToString(), imageData.Length);
+            }
 
             this.width = width;
             this.height = height;
             Marshal.Copy(buffer, imageData, 0, imageData.Length);
+
+            sharedBuffer.AcquireWriteLock();
+            sharedBuffer.Write(imageData);
+            sharedBuffer.ReleaseWriteLock();
+
+            Client.BrowserIPC.OnPaint(width, height, sharedMemGuid.ToString());
         }
 
         protected override void OnPopupSize(CefBrowser browser, CefRectangle rect)

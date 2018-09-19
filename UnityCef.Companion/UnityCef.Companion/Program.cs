@@ -9,12 +9,14 @@ using Xilium.CefGlue;
 using UnityCef.Shared;
 using UnityCef.Companion.Cef;
 using System.Drawing.Imaging;
+using UnityCef.Companion.Ipc;
+using UnityCef.Shared.Ipc;
 
 namespace UnityCef.Companion
 {
     class Program
     {
-        private static CompanionIPC ipc = new CompanionIPC(new IPC(new InternalPipeIPC(true)));
+        private static LogicIpc ipc = new LogicIpc(new MessageIpc(new TcpDataIpc(true)));
         private static EventWaitHandle exitWait = new EventWaitHandle(false, EventResetMode.ManualReset);
 
         public static void ShowValue(string name, object value, TextWriter output = null)
@@ -105,7 +107,7 @@ namespace UnityCef.Companion
                 info.WindowlessRenderingEnabled = true;
                 info.SetAsWindowless(IntPtr.Zero, true);
 
-                var client = new Client(800, 600);
+                var client = new Client(ipc, 800, 600);
 
                 var settings = new CefBrowserSettings()
                 {

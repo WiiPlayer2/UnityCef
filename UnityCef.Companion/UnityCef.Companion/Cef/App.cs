@@ -14,6 +14,7 @@ namespace UnityCef.Companion.Cef
             {
                 commandLine.AppendSwitch("enable-media-stream", "1");
                 commandLine.AppendSwitch("enable-system-flash", "1");
+                commandLine.AppendSwitch("autoplay-policy", "no-user-gesture-required");
             }
         }
     }

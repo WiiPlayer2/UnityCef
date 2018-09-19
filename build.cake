@@ -236,6 +236,7 @@ Task("companion-copy")
 .Does(() => {
     Information("Copying companion binaries...");
     CopyFile("./UnityCef.Companion/UnityCef.Shared/bin/Release/netstandard2.0/UnityCef.Shared.dll", "./Assets/UnityCef/UnityCef.Shared.dll");
+    CopyFile("./UnityCef.Companion/packages/SharedMemory.2.1.0/lib/net45/SharedMemory.dll", "./Assets/UnityCef/SharedMemory.dll");
 });
 
 // cake ////////////////////////////////////////////////////////////////////////////

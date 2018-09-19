@@ -7,9 +7,9 @@ using System.Reflection;
 using System.Linq;
 using System.Diagnostics;
 
-namespace UnityCef.Shared
+namespace UnityCef.Shared.Ipc
 {
-    public class IPC : IDisposable
+    public class MessageIpc : IDisposable
     {
         public class MethodAttribute : Attribute
         {
@@ -32,10 +32,10 @@ namespace UnityCef.Shared
 
         private const string IPC_DEFAULT_GUID = "{1A96751A-9E69-41D2-8DCA-6C9926990458}";
 
-        private readonly IInternalIPC ipc;
+        private readonly IDataIpc ipc;
         private readonly Dictionary<string, Func<object[], object[]>> methods;
 
-        public IPC(IInternalIPC ipc)
+        public MessageIpc(IDataIpc ipc)
         {
             methods = new Dictionary<string, Func<object[], object[]>>();
             //ipc = new SharmIpc(IPC_DEFAULT_GUID, OnCall);
@@ -69,14 +69,23 @@ namespace UnityCef.Shared
             RegisterMethod(methodName, method.Target, method.Method);
         }
 
-        public void RegisterObject(object obj)
+        public void RegisterObject(object obj, string prefix)
+        {
+            if (prefix != null)
+                RegisterObject(obj, (m, attr) => $"{prefix}.{attr.MethodName}");
+            else
+                RegisterObject(obj);
+        }
+
+        public void RegisterObject(object obj, Func<MethodInfo, MethodAttribute, string> namingScheme = null)
         {
             foreach(var m in obj.GetType().GetMethods()
                 .Where(o => o.GetCustomAttribute<MethodAttribute>() != null))
             {
                 var attr = m.GetCustomAttribute<MethodAttribute>();
                 attr.MethodName = attr.MethodName ?? m.Name;
-                RegisterMethod(attr.MethodName, obj, m);
+                var name = namingScheme != null ? namingScheme(m, attr) : attr.MethodName;
+                RegisterMethod(name, obj, m);
             }
         }
 

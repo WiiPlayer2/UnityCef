@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace UnityCef.Shared
+namespace UnityCef.Shared.Ipc
 {
-    public interface IInternalIPC : IDisposable
+    public interface IDataIpc : IDisposable
     {
         void SetCallback(Func<byte[], Tuple<bool, byte[]>> onCall);
         

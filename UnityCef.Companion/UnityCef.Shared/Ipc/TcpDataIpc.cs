@@ -9,9 +9,9 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace UnityCef.Shared
+namespace UnityCef.Shared.Ipc
 {
-    public class InternalPipeIPC : IInternalIPC
+    public class TcpDataIpc : IDataIpc
     {
         private enum PacketType : byte
         {
@@ -20,37 +20,38 @@ namespace UnityCef.Shared
             Response = 0x3,
         }
 
-        private struct ResponseInfo : IDisposable
+        private class ResponseInfo : IDisposable
         {
-            public long ID;
-            public EventWaitHandle WaitHandle;
-            public Tuple<bool, byte[]> Response;
+            private EventWaitHandle waitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+            private Tuple<bool, byte[]> response;
+
+            public ResponseInfo(long id)
+            {
+                ID = id;
+            }
+
+            public long ID { get; private set; }
 
             public static ResponseInfo Create(long id)
             {
-                var info = new ResponseInfo()
-                {
-                    ID = id,
-                    WaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset),
-                };
-                return info;
+                return new ResponseInfo(id);
             }
 
             public Tuple<bool, byte[]> Wait()
             {
-                WaitHandle.WaitOne();
-                return Response;
+                waitHandle.WaitOne();
+                return response;
             }
 
             public void Signal(Tuple<bool, byte[]> response)
             {
-                Response = response;
-                WaitHandle.Set();
+                this.response = response;
+                waitHandle.Set();
             }
 
             public void Dispose()
             {
-                WaitHandle.Dispose();
+                waitHandle.Dispose();
             }
         }
 
@@ -62,20 +63,20 @@ namespace UnityCef.Shared
         private EventWaitHandle waitForConnection = new EventWaitHandle(false, EventResetMode.ManualReset);
         private Stream stream;
         private long packetId = 1;
-        private object packetIdLock = new object();
-        private Task readTask;
+        private readonly object packetIdLock = new object();
+        private CancellationTokenSource readTaskCancellation = new CancellationTokenSource();
         private Func<byte[], Tuple<bool, byte[]>> callback;
         private Dictionary<long, ResponseInfo> responseInfos = new Dictionary<long, ResponseInfo>();
 
-        public InternalPipeIPC(bool isServer)
+        public TcpDataIpc(bool isServer)
             : this(isServer, DEFAULT_UNIQUE_NAME) { }
 
-        public InternalPipeIPC(bool isServer, string uniqueName)
+        public TcpDataIpc(bool isServer, string uniqueName)
         {
             IsServer = isServer;
             UniqueName = uniqueName;
 
-            readTask = Task.Run(async () =>
+            Task.Run(async () =>
             {
                 if (isServer)
                 {
@@ -113,7 +114,7 @@ namespace UnityCef.Shared
                 }
                 waitForConnection.Set();
                 await RunReadLoop();
-            });
+            }, readTaskCancellation.Token);
         }
 
         private void SendPing()
@@ -174,12 +175,15 @@ namespace UnityCef.Shared
 
         private async Task RunReadLoop()
         {
-            while(true)
+            while (true)
             {
                 var read = 0;
                 var buffer = new byte[8];
                 do
                 {
+                    if (readTaskCancellation.IsCancellationRequested)
+                        return;
+
                     read = await stream.ReadAsync(buffer, 0, 1);
                     if (read < 1)
                         await Task.Delay(100);
@@ -187,19 +191,19 @@ namespace UnityCef.Shared
                 while (read < 1);
 
                 var packetType = (PacketType)buffer[0];
-                if(packetType != PacketType.Ping)
+                if (packetType != PacketType.Ping)
                 {
                     await stream.ReadAsync(buffer, 0, 8);
                     var id = BitConverter.ToInt64(buffer, 0);
                     var ok = true;
                     byte[] data = null;
 
-                    if(packetType == PacketType.Response)
+                    if (packetType == PacketType.Response)
                     {
                         await stream.ReadAsync(buffer, 0, 1);
                         ok = BitConverter.ToBoolean(buffer, 0);
                     }
-                    if(ok)
+                    if (ok)
                     {
                         await stream.ReadAsync(buffer, 0, 4);
                         var length = BitConverter.ToInt32(buffer, 0);
@@ -231,7 +235,8 @@ namespace UnityCef.Shared
 
         private async void HandleRequest(long id, byte[] data)
         {
-            await Task.Run(() => {
+            await Task.Run(() =>
+            {
                 var success = false;
                 byte[] retData = null;
                 try
@@ -263,7 +268,7 @@ namespace UnityCef.Shared
 
         public void Dispose()
         {
-            readTask.Dispose();
+            readTaskCancellation.Cancel();
             waitForConnection.Dispose();
             stream.Dispose();
         }

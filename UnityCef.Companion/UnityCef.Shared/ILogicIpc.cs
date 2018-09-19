@@ -4,13 +4,11 @@ using System.Text;
 
 namespace UnityCef.Shared
 {
-    public interface IIPC : IDisposable
+    public interface ILogicIpc
     {
         void Ready();
 
-        void CreateBrowser(int width, int height, string url = "");
-
-        void CreatedBrowser();
+        int CreateBrowser(int width, int height, string url = "");
 
         void Shutdown();
     }
