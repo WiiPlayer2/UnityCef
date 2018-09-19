@@ -236,6 +236,12 @@ if ($ShowDescription) { $cakeArguments += "-showdescription" }
 if ($DryRun) { $cakeArguments += "-dryrun" }
 $cakeArguments += $ScriptArgs
 
+# Copy vars.sample.cake if vars.cake does not exist
+if(-not (Test-Path ".\cake\vars.cake"))
+{
+    Copy-Item ".\cake\vars.sample.cake" ".\cake\vars.cake"
+}
+
 # Start Cake
 Write-Host "Running build script..."
 &$CAKE_EXE $cakeArguments
