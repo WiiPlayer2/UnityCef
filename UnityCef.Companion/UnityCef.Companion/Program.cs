@@ -49,7 +49,13 @@ namespace UnityCef.Companion
 
             try
             {
-                CefRuntime.Load("../../../../../cef_windows64");
+#if DEBUG && X86
+                CefRuntime.Load("../../../../../Assets/UnityCef/Companion/windows32");
+#elif DEBUG && X64
+                CefRuntime.Load("../../../../../Assets/UnityCef/Companion/windows64");
+#else
+                CefRuntime.Load();
+#endif
 
                 var mainArgs = new CefMainArgs(args);
                 var app = new App();

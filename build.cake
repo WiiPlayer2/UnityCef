@@ -273,6 +273,11 @@ Task("cake-vars")
     FileWriteText("./cake/vars.sample.cake", text);
 });
 
+// dev /////////////////////////////////////////////////////////////////////////////
+Task("dev")
+.IsDependentOn("companion-copy")
+.IsDependentOn("cef-copy");
+
 Task("Default")
 .IsDependentOn("cef-copy")
 .IsDependentOn("companion-copy");
