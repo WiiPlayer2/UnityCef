@@ -138,17 +138,14 @@ Task("cef-download")
 });
 
 Task("cef-copy")
+.IsDependentOn("companion-copy")
 .IsDependentOn("cef-download")
 .DoesForEach(cefPlatforms, (platform) => {
     Information($"Copy cef {platform} binaries...");
     var cefDir = $"./tmp/cef_binary_{cef_version}_{platform}";
-    var cefOutDir = $"./cef_{platform}";
-    EnsureDirectoryExists(cefOutDir);
-    CleanDirectory(cefOutDir);
+    var cefOutDir = $"./Assets/UnityCef/Companion/{platform}";
     CopyDirectory($"{cefDir}/Resources", cefOutDir);
     CopyDirectory($"{cefDir}/Release", cefOutDir);
-    //MoveFile($"{cefOutDir}/libcef.dll", $"{cefOutDir}/libcef-unity.dll");
-    //MoveFile($"{cefOutDir}/libcef.lib", $"{cefOutDir}/libcef-unity.lib");
 });
 
 // cefglue ///////////////////////////////////////////////////////////////////
@@ -212,14 +209,6 @@ Task("cefglue-build")
             .WithConsoleLoggerParameter("ErrorsOnly"));
 });
 
-Task("cefglue-copy")
-.IsDependentOn("cefglue-build")
-.WithCriteria(false) //TODO: Maybe remove task
-.Does(() => {
-    Information("Copy binaries to Assets...");
-    CopyFile("./cefglue/CefGlue/bin/Release/Xilium.CefGlue.dll", "./Assets/UnityCef/Xilium.CefGlue.dll");
-});
-
 // companion /////////////////////////////////////////////////////////////////////////////
 Task("companion-clean")
 .Does(()=>
@@ -240,13 +229,14 @@ Task("companion-build")
             .SetPlatformTarget(platform));
 });
 
-//TODO: Copy app too
 Task("companion-copy")
 .IsDependentOn("companion-build")
 .Does(() => {
     Information("Copying companion binaries...");
-    CopyFile("./UnityCef.Companion/UnityCef.Shared/bin/Release/netstandard2.0/UnityCef.Shared.dll", "./Assets/UnityCef/UnityCef.Shared.dll");
-    CopyFile("./UnityCef.Companion/packages/SharedMemory.2.1.0/lib/net45/SharedMemory.dll", "./Assets/UnityCef/SharedMemory.dll");
+    EnsureDirectoryExists("./Assets/UnityCef/libs");
+    CleanDirectory("./Assets/UnityCef/libs");
+    CopyFile("./UnityCef.Companion/UnityCef.Shared/bin/Release/netstandard2.0/UnityCef.Shared.dll", "./Assets/UnityCef/libs/UnityCef.Shared.dll");
+    CopyFile("./UnityCef.Companion/packages/SharedMemory.2.1.0/lib/net45/SharedMemory.dll", "./Assets/UnityCef/libs/SharedMemory.dll");
 
     EnsureDirectoryExists("./Assets/UnityCef/Companion");
     CleanDirectory("./Assets/UnityCef/Companion");
@@ -285,7 +275,6 @@ Task("cake-vars")
 
 Task("Default")
 .IsDependentOn("cef-copy")
-.IsDependentOn("cefglue-copy")
 .IsDependentOn("companion-copy");
 
 RunTarget(target);

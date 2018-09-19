@@ -2,6 +2,8 @@ cef_*
 tmp
 *.log
 cake/vars.cake
+Assets/UnityCef/Companion/*
+Assets/UnityCef/libs/*
 
 ### gitignore.io
 
