@@ -97,14 +97,13 @@ public class WebBrowser : MonoBehaviour
 
     private static IEnumerator StartCompanion()
     {
+        ipc = new LogicIpc(new MessageIpc(new TcpDataIpc(true)));
         Debug.Log("Starting companion app...");
 #if !COMPANION_DEBUG
         Process.Start(companionPath).Dispose();
 #else
-        Debug.Log("COMPANION_DEBUG is set.\nPlease start companion app separately.");
+        Debug.LogWarning("COMPANION_DEBUG is set.\nPlease start companion app separately.");
 #endif
-        yield return new WaitForSeconds(1f);
-        ipc = new LogicIpc(new MessageIpc(new TcpDataIpc(false)));
         yield return new WaitUntil(() => ipc.IsReady);
     }
     

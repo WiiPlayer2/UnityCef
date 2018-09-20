@@ -16,7 +16,7 @@ namespace UnityCef.Companion
 {
     class Program
     {
-        private static LogicIpc ipc = new LogicIpc(new MessageIpc(new TcpDataIpc(true)));
+        private static LogicIpc ipc = new LogicIpc(new MessageIpc(new TcpDataIpc(false)));
         private static EventWaitHandle exitWait = new EventWaitHandle(false, EventResetMode.ManualReset);
 
         public static void ShowValue(string name, object value, TextWriter output = null)

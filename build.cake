@@ -351,8 +351,11 @@ Task("cake-vars")
 });
 
 // dev /////////////////////////////////////////////////////////////////////////////
+Task("dev-vs-update")
+.IsDependentOn("cef-copy");
+
 Task("dev-vs")
-.IsDependentOn("cef-copy")
+.IsDependentOn("dev-vs-update")
 .Does(() =>
 {
     Information("Opening UnityCef.Companion.sln...");
@@ -363,10 +366,13 @@ Task("dev-vs")
     }).Dispose();
 });
 
-Task("dev-unity")
+Task("dev-unity-update")
 .IsDependentOn("cef-copy")
 .IsDependentOn("companion-copy")
-.IsDependentOn("companion-libs-copy")
+.IsDependentOn("companion-libs-copy");
+
+Task("dev-unity")
+.IsDependentOn("dev-unity-update")
 .Does(() =>
 {
     Information($"Starting Unity version \"{unity_version}\"...");
@@ -376,6 +382,10 @@ Task("dev-unity")
         Arguments = @"-projectPath ./",
     }).Dispose();
 });
+
+Task("dev-update")
+.IsDependentOn("dev-unity-update")
+.IsDependentOn("dev-vs-update");
 
 Task("dev")
 .IsDependentOn("dev-unity")
