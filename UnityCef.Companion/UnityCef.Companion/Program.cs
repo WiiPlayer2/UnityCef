@@ -50,9 +50,9 @@ namespace UnityCef.Companion
             try
             {
 #if DEBUG && X86
-                CefRuntime.Load("../../../../../Assets/UnityCef/Companion/windows32");
+                CefRuntime.Load("../../../../../cef_windows32");
 #elif DEBUG && X64
-                CefRuntime.Load("../../../../../Assets/UnityCef/Companion/windows64");
+                CefRuntime.Load("../../../../../cef_windows64");
 #else
                 CefRuntime.Load();
 #endif

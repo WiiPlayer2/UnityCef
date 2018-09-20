@@ -165,13 +165,23 @@ Task("cef-download")
     }
 });
 
+Task("cef-clean")
+.DoesForEach(cefPlatforms, platform =>
+{
+    var cefDir = $"./cef_{platform}";
+    Information($"Cleaning {cefDir}...");
+    EnsureDirectoryExists(cefDir);
+    CleanDirectory(cefDir);
+});
+
 Task("cef-copy")
+.IsDependentOn("cef-clean")
 .IsDependentOn("companion-copy")
 .IsDependentOn("cef-download")
 .DoesForEach(cefPlatforms, (platform) => {
     Information($"Copying cef {platform} binaries...");
     var cefDir = $"./tmp/cef_binary_{cef_version}_{platform}";
-    var cefOutDir = $"./Assets/UnityCef/Companion/{platform}";
+    var cefOutDir = $"./cef_{platform}";
     CopyDirectory($"{cefDir}/Resources", cefOutDir);
     CopyDirectory($"{cefDir}/Release", cefOutDir);
 });
@@ -258,27 +268,56 @@ Task("companion-build")
             .SetPlatformTarget(platform));
 });
 
-Task("companion-copy")
+Task("companion-libs-copy")
 .IsDependentOn("companion-build")
-.Does(() => {
-    Information("Copying companion binaries...");
-    EnsureDirectoryExists("./Assets/UnityCef/libs");
-    CleanDirectory("./Assets/UnityCef/libs");
+.IsDependentOn("unity-clean")
+.Does(() =>
+{
+    Information("Copying companion libraries...");
     CopyFile("./UnityCef.Companion/UnityCef.Shared/bin/Release/netstandard2.0/UnityCef.Shared.dll", "./Assets/UnityCef/libs/UnityCef.Shared.dll");
     CopyFile("./UnityCef.Companion/packages/SharedMemory.2.1.0/lib/net45/SharedMemory.dll", "./Assets/UnityCef/libs/SharedMemory.dll");
+});
 
-    EnsureDirectoryExists("./Assets/UnityCef/Companion");
-    CleanDirectory("./Assets/UnityCef/Companion");
-    EnsureDirectoryExists("./Assets/UnityCef/Companion/windows32");
-    CopyDirectory("./UnityCef.Companion/UnityCef.Companion/bin/x86/Release", "./Assets/UnityCef/Companion/windows32");
-    EnsureDirectoryExists("./Assets/UnityCef/Companion/windows64");
-    CopyDirectory("./UnityCef.Companion/UnityCef.Companion/bin/x64/Release", "./Assets/UnityCef/Companion/windows64");
+Task("companion-copy")
+.IsDependentOn("cef-clean")
+.IsDependentOn("companion-build")
+.IsDependentOn("unity-clean")
+.DoesForEach(cefPlatforms, platform =>
+{
+    var isX64 = platform.EndsWith("64");
+    var arch = isX64 ? "x64" : "x86";
+    var cefDir = $"./cef_{platform}";
+    var binPath = $"./UnityCef.Companion/UnityCef.Companion/bin/{arch}/Release";
+
+    Information($"Copying companion {arch} binaries to {cefDir}...");
+    CopyDirectory(binPath, cefDir);
 });
 
 // unity ///////////////////////////////////////////////////////////////////////////
-Task("unity-package")
+Task("unity-clean")
+.Does(() =>
+{
+    Information("Cleaning companion assets...");
+    EnsureDirectoryExists("./Assets/UnityCef/Companion");
+    CleanDirectory("./Assets/UnityCef/Companion");
+    EnsureDirectoryExists("./Assets/UnityCef/libs");
+    CleanDirectory("./Assets/UnityCef/libs");
+});
+
+Task("unity-zip")
 .IsDependentOn("companion-copy")
 .IsDependentOn("cef-copy")
+.DoesForEach(cefPlatforms, platform =>
+{
+    var cefDir = $"./cef_{platform}";
+    var zipFile = $"./Assets/UnityCef/Companion/{platform}.zip";
+    Information($"Zipping {cefDir} to {zipFile}...");
+    ZipCompress(cefDir, zipFile);
+});
+
+Task("unity-package")
+.IsDependentOn("unity-zip")
+.IsDependentOn("companion-libs-copy")
 .Does(() =>
 {
     Information("Packing Unity asset package...");
@@ -303,12 +342,33 @@ Task("cake-vars")
 });
 
 // dev /////////////////////////////////////////////////////////////////////////////
-Task("dev")
+Task("dev-vs")
+.IsDependentOn("cef-copy")
+.Does(() =>
+{
+    Information("Opening UnityCef.Companion.sln...");
+    StartAndReturnProcess("./UnityCef.Companion/UnityCef.Companion.sln").Dispose();
+});
+
+Task("dev-unity")
+.IsDependentOn("cef-copy")
 .IsDependentOn("companion-copy")
-.IsDependentOn("cef-copy");
+.IsDependentOn("companion-libs-copy")
+.Does(() =>
+{
+    Information($"Starting Unity version \"{unity_version}\"...");
+    TryGetUnityInstall(unity_version, out var unityPath);
+    StartAndReturnProcess(unityPath, new ProcessSettings
+    {
+        Arguments = @"-projectPath ./",
+    }).Dispose();
+});
+
+Task("dev")
+.IsDependentOn("dev-unity")
+.IsDependentOn("dev-vs");
 
 Task("Default")
-.IsDependentOn("cef-copy")
-.IsDependentOn("companion-copy");
+.IsDependentOn("unity-package");
 
 RunTarget(target);

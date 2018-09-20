@@ -268,6 +268,8 @@ GameObject:
   - component: {fileID: 538375414}
   - component: {fileID: 538375413}
   - component: {fileID: 538375412}
+  - component: {fileID: 538375418}
+  - component: {fileID: 538375417}
   m_Layer: 0
   m_Name: Plane
   m_TagString: Untagged
@@ -281,7 +283,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 538375411}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ec15f70ab2337d9479ae33bf1e030238, type: 3}
   m_Name: 
@@ -356,3 +358,29 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
+--- !u!114 &538375417
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 538375411}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8372610f042b2dc4d802b5476bc62c87, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Width: 1024
+  Height: 1024
+  StartUrl: https://soundcloud.com/alstroemeria-records/arcd0067-popculture-9-xfade
+--- !u!114 &538375418
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 538375411}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d6985177ae8f45e4eacb8ce7cc381f60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Renderer: {fileID: 538375414}

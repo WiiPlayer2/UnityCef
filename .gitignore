@@ -4,6 +4,8 @@ tmp
 cake/vars.cake
 Assets/UnityCef/Companion/*
 Assets/UnityCef/libs/*
+blob_storage
+GPUCache
 
 ### gitignore.io
 
