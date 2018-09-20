@@ -1,3 +1,0 @@
-[submodule "cefglue"]
-    path = cefglue
-    url = https://gitlab.com/xiliumhq/chromiumembedded/cefglue.git

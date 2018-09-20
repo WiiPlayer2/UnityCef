@@ -187,7 +187,16 @@ Task("cef-copy")
 });
 
 // cefglue ///////////////////////////////////////////////////////////////////
+Task("cefglue-clone")
+.WithCriteria(!DirectoryExists("./cefglue"))
+.Does(() =>
+{
+    Information("Cloning cefglue repository...");
+    GitClone("https://gitlab.com/xiliumhq/chromiumembedded/cefglue.git", "./cefglue");
+});
+
 Task("cefglue-update")
+.IsDependentOn("cefglue-clone")
 .WithCriteria(!skip_update)
 .Does(() => {
     Information("Updating cefglue repository...");
