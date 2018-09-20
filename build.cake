@@ -356,7 +356,11 @@ Task("dev-vs")
 .Does(() =>
 {
     Information("Opening UnityCef.Companion.sln...");
-    StartAndReturnProcess("./UnityCef.Companion/UnityCef.Companion.sln").Dispose();
+    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+    {
+        FileName = System.IO.Path.GetFullPath("./UnityCef.Companion/UnityCef.Companion.sln"),
+        UseShellExecute = true,
+    }).Dispose();
 });
 
 Task("dev-unity")
