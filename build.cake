@@ -352,10 +352,7 @@ Task("unity-package")
         var lastCommit = currentBranch.Tip;
         postfix = lastCommit.Sha.Substring(0, 6);
 
-        var hasUncommitedChanges = GitHasUncommitedChanges(".");
-        var hasUntrackedFiles = GitHasUntrackedFiles(".");
-        var hasStagedChanges = GitHasStagedChanges(".");
-        if(GitHasUncommitedChanges("."))
+        if(false && GitHasUncommitedChanges(".")) //FIXME: Somehow it always returns true even if the repository is not dirty
         {
             Warning("Repository has uncommited changes. Appending \"-dirty\" to hash.");
             postfix += "-dirty";
