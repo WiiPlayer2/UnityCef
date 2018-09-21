@@ -183,20 +183,24 @@ Task("cefglue-clone")
     GitClone("https://gitlab.com/xiliumhq/chromiumembedded/cefglue.git", "./cefglue");
 });
 
-Task("cefglue-update")
+//FIXME: Create local branch if it doesn't exist yet so the branch check succeeds
+Task("cefglue-branch")
 .IsDependentOn("cefglue-clone")
-.WithCriteria(!skip_update)
 .Does(() => {
-    Information("Updating cefglue repository...");
-    GitCheckout("./cefglue", $"origin/{cefglue_branch}");
-    GitReset("./cefglue", GitResetMode.Hard);
-    GitClean("./cefglue");
+    var currentBranch = GitBranchCurrent("./cefglue");
+    if(currentBranch.FriendlyName != cefglue_branch)
+    {
+        Information($"Checking out cefglue branch {cefglue_branch} repository...");
+        GitCheckout("./cefglue", $"origin/{cefglue_branch}");
+        GitReset("./cefglue", GitResetMode.Hard);
+        GitClean("./cefglue");
+    }
 });
 
 Task("cefglue-copy-headers")
 .IsDependentOn("cef-download")
-.IsDependentOn("cefglue-clone")
-.WithCriteria(!CheckTimestamp($"./tmp/cef_binary_{cef_version}_windows64"))
+.IsDependentOn("cefglue-branch")
+.WithCriteria(!CheckTimestamps("./cefglue", $"./tmp/cef_binary_{cef_version}_windows64"))
 .Does(() => {
     Information("Copying cef include files...");
     CleanDirectory("./cefglue/CefGlue.Interop.Gen/include");
@@ -360,7 +364,7 @@ Task("unity-package")
     }
     var outPath = $"./UnityCef{package_version}.{commitHash}.unitypackage";
 
-    Information("Packing Unity asset package...");
+    Information($"Packing {outPath}...");
     TryGetUnityInstall(unity_version, out var unityPath);
     var exitCode = StartProcess(unityPath, $@"-projectPath ./ -quit -batchmode -exportPackage Assets/UnityCef {outPath}");
     if(exitCode != 0)
