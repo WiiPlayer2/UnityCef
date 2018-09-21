@@ -82,13 +82,21 @@ Task("tmp-clean")
 .IsDependentOn("tmp-create")
 .Does(() =>
 {
-    CleanDirectory("./tmp");
+    if(DirectoryExists("./tmp"))
+    {
+        DeleteDirectory("./tmp", new DeleteDirectorySettings
+        {
+            Force = true,
+            Recursive = true,
+        });
+    }
 })
 .OnError(exception =>
 {
     Warning("Failed to clean directory the normal way.");
     ForceCleanDirectory("./tmp");
-});
+})
+.DeferOnError();
 
 // cef ////////////////////////////////////////////////////////////////////////
 Task("cef-update")
@@ -141,9 +149,17 @@ Task("cef-clean")
 .DoesForEach(cefPlatforms, platform =>
 {
     var cefDir = $"./cef_{platform}";
-    Information($"Cleaning {cefDir}...");
-    DeleteDirectory(cefDir, true);
-});
+    if(DirectoryExists(cefDir))
+    {
+        Information($"Cleaning {cefDir}...");
+        DeleteDirectory(cefDir, new DeleteDirectorySettings
+        {
+            Force = true,
+            Recursive = true,
+        });
+    }
+})
+.DeferOnError();
 
 Task("cef-copy")
 .IsDependentOn("companion-copy")
@@ -296,7 +312,8 @@ Task("unity-clean")
     CleanDirectory("./Assets/UnityCef/Companion");
     EnsureDirectoryExists("./Assets/UnityCef/libs");
     CleanDirectory("./Assets/UnityCef/libs");
-});
+})
+.DeferOnError();
 
 Task("unity-zip")
 .IsDependentOn("companion-copy")
@@ -306,9 +323,17 @@ Task("unity-zip")
 {
     var cefDir = $"./cef_{platform}";
     var zipFile = $"./Assets/UnityCef/Companion/{platform}.zip";
+    EnsureDirectoryExists("./Assets/UnityCef/Companion");
     Information($"Zipping {cefDir} to {zipFile}...");
     ZipCompress(cefDir, zipFile);
     SetTimestamp($"./Assets/UnityCef");
+});
+
+Task("unity-package-clean")
+.DoesForEach(GetFiles("./*.unitypackage"), file =>
+{
+    Information($"Removing {file}...");
+    DeleteFile(file);
 });
 
 Task("unity-package")
@@ -387,12 +412,17 @@ Task("clean")
 .IsDependentOn("cef-clean")
 .IsDependentOn("companion-clean")
 .IsDependentOn("unity-clean")
+.IsDependentOn("unity-package-clean")
 .Does(() =>
 {
     if(DirectoryExists("./cefglue"))
     {
         Information("Removing cefglue");
-        DeleteDirectory("./cefglue", true);
+        DeleteDirectory("./cefglue", new DeleteDirectorySettings
+        {
+            Force = true,
+            Recursive = true,
+        });
     }
 })
 .OnError(exception =>
@@ -400,7 +430,8 @@ Task("clean")
     Information("Failed to remove ./cefglue");
     ForceCleanDirectory("./cefglue");
     DeleteDirectory("./cefglue");
-});
+})
+.DeferOnError();
 
 Task("Default")
 .IsDependentOn("unity-package");
