@@ -285,6 +285,7 @@ Task("companion-libs-copy")
     Information("Copying companion libraries...");
     CopyFile("./UnityCef.Companion/UnityCef.Shared/bin/Release/netstandard2.0/UnityCef.Shared.dll", "./Assets/UnityCef/libs/UnityCef.Shared.dll");
     CopyFile("./UnityCef.Companion/packages/SharedMemory.2.1.0/lib/net45/SharedMemory.dll", "./Assets/UnityCef/libs/SharedMemory.dll");
+    CopyFile("./tools/Addins/SharpZipLib.1.0.0/lib/net45/ICSharpCode.SharpZipLib.dll", "./Assets/UnityCef/libs/ICSharpCode.SharpZipLib.dll");
 });
 
 Task("companion-copy")
@@ -369,7 +370,8 @@ Task("dev-vs")
 Task("dev-unity-update")
 .IsDependentOn("cef-copy")
 .IsDependentOn("companion-copy")
-.IsDependentOn("companion-libs-copy");
+.IsDependentOn("companion-libs-copy")
+.IsDependentOn("unity-zip");
 
 Task("dev-unity")
 .IsDependentOn("dev-unity-update")

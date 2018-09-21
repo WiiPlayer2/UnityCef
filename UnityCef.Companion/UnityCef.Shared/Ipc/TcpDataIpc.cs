@@ -61,6 +61,7 @@ namespace UnityCef.Shared.Ipc
         private const int TCP_PORT_RANGE_END = 9000;
 
         private EventWaitHandle waitForConnection = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle waitForListener = new EventWaitHandle(false, EventResetMode.ManualReset);
         private Stream stream;
         private long packetId = 1;
         private readonly object packetIdLock = new object();
@@ -76,42 +77,32 @@ namespace UnityCef.Shared.Ipc
             IsServer = isServer;
             UniqueName = uniqueName;
 
+            //TODO: Make synchronous so the server is up and client is connected when object is created
             Task.Run(async () =>
             {
+                var negotiater = new IpcNegotiater(IsServer);
+                Console.WriteLine("Negotiating port...");
                 if (isServer)
                 {
-                    using (var pipe = new NamedPipeServerStream(UniqueName, PipeDirection.Out, 1))
-                    {
-                        pipe.WaitForConnection();
+                    var port = new Random().Next(TCP_PORT_RANGE_START, TCP_PORT_RANGE_END);
+                    var listener = new TcpListener(IPAddress.Loopback, port);
+                    listener.Start();
+                    waitForListener.Set();
 
-                        var port = new Random().Next(TCP_PORT_RANGE_START, TCP_PORT_RANGE_END);
-                        var listener = new TcpListener(IPAddress.Loopback, port);
-                        listener.Start();
+                    await negotiater.WaitAsServer(port);
 
-                        var buffer = BitConverter.GetBytes(port);
-                        await pipe.WriteAsync(buffer, 0, 4);
-                        await pipe.FlushAsync();
-
-                        var client = await listener.AcceptTcpClientAsync();
-                        stream = client.GetStream();
-                    }
+                    var client = await listener.AcceptTcpClientAsync();
+                    stream = client.GetStream();
                 }
                 else
                 {
-                    using (var pipe = new NamedPipeClientStream(".", UniqueName, PipeDirection.In))
-                    {
-                        pipe.Connect();
+                    var port = await negotiater.WaitAsClient();
+                    var client = new TcpClient();
+                    await client.ConnectAsync(IPAddress.Loopback, port);
 
-                        var buffer = new byte[4];
-                        await pipe.ReadAsync(buffer, 0, 4);
-
-                        var port = BitConverter.ToInt32(buffer, 0);
-                        var client = new TcpClient();
-                        await client.ConnectAsync(IPAddress.Loopback, port);
-
-                        stream = client.GetStream();
-                    }
+                    stream = client.GetStream();
                 }
+                Console.WriteLine("TCP connection established.");
                 waitForConnection.Set();
                 await RunReadLoop();
             }, readTaskCancellation.Token);
@@ -270,6 +261,7 @@ namespace UnityCef.Shared.Ipc
         {
             readTaskCancellation.Cancel();
             waitForConnection.Dispose();
+            waitForListener.Dispose();
             stream.Dispose();
         }
 
@@ -281,6 +273,11 @@ namespace UnityCef.Shared.Ipc
         public void RemoteSend(byte[] data)
         {
             SendRequest(data);
+        }
+
+        public void WaitAsServer()
+        {
+            waitForListener.WaitOne();
         }
     }
 }

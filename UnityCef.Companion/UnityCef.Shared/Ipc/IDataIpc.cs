@@ -6,6 +6,8 @@ namespace UnityCef.Shared.Ipc
 {
     public interface IDataIpc : IDisposable
     {
+        void WaitAsServer();
+
         void SetCallback(Func<byte[], Tuple<bool, byte[]>> onCall);
         
         void RemoteSend(byte[] data);

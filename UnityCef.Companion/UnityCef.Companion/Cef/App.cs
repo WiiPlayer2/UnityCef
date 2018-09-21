@@ -4,9 +4,7 @@ namespace UnityCef.Companion.Cef
 {
     class App : CefApp
     {
-        public App()
-        {
-        }
+        public App() { }
 
         protected override void OnBeforeCommandLineProcessing(string processType, CefCommandLine commandLine)
         {

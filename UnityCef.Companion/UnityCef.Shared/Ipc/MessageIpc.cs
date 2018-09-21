@@ -33,15 +33,20 @@ namespace UnityCef.Shared.Ipc
         private const string IPC_DEFAULT_GUID = "{1A96751A-9E69-41D2-8DCA-6C9926990458}";
 
         private readonly IDataIpc ipc;
+        private readonly Dictionary<object, IList<string>> objectMethods;
         private readonly Dictionary<string, Func<object[], object[]>> methods;
 
         public MessageIpc(IDataIpc ipc)
         {
+            objectMethods = new Dictionary<object, IList<string>>();
             methods = new Dictionary<string, Func<object[], object[]>>();
-            //ipc = new SharmIpc(IPC_DEFAULT_GUID, OnCall);
+
             ipc.SetCallback(OnCall);
             this.ipc = ipc;
+            IPC = ipc;
         }
+
+        public IDataIpc IPC { get; private set; }
 
         public void RegisterMethod(string methodName, Func<object[], object[]> method)
         {
@@ -62,6 +67,9 @@ namespace UnityCef.Shared.Ipc
                         .ToArray();
                 return new object[] { ret };
             }));
+            if (!objectMethods.ContainsKey(obj))
+                objectMethods[obj] = new List<string>();
+            objectMethods[obj].Add(methodName);
         }
 
         public void RegisterMethod(string methodName, Delegate method)
@@ -75,6 +83,15 @@ namespace UnityCef.Shared.Ipc
                 RegisterObject(obj, (m, attr) => $"{prefix}.{attr.MethodName}");
             else
                 RegisterObject(obj);
+        }
+
+        public void UnregisterObject(object obj)
+        {
+            foreach(var m in objectMethods[obj])
+            {
+                methods.Remove(m);
+            }
+            objectMethods.Remove(obj);
         }
 
         public void RegisterObject(object obj, Func<MethodInfo, MethodAttribute, string> namingScheme = null)

@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using UnityCef.Shared.Ipc;
 using UnityCef.Unity.Ipc;
 using UnityEngine;
@@ -27,11 +28,14 @@ public class WebBrowser : MonoBehaviour
         UnityEditor.EditorApplication.update += EditorUpdate;
         var dir = string.Format("./cef_{0}", CefPlatform);
 #else
-        var dir = "./cef";
+        var assembly = Assembly.GetExecutingAssembly();
+        Debug.LogFormat("Assembly location: {0}", assembly.Location);
+        var managedDir = Path.GetDirectoryName(assembly.Location);
+        var dataDir = Path.GetDirectoryName(managedDir);
+        var outDir = Path.GetDirectoryName(dataDir);
+        var dir = Path.Combine(outDir, "cef");
 #endif
         companionPath = Path.GetFullPath(string.Format("{0}/UnityCef.Companion.exe", dir));
-
-        Debug.LogFormat("UnityCef.Companion path: {0}", companionPath);
     }
 
 #if UNITY_EDITOR
@@ -98,8 +102,11 @@ public class WebBrowser : MonoBehaviour
     private static IEnumerator StartCompanion()
     {
         ipc = new LogicIpc(new MessageIpc(new TcpDataIpc(true)));
+        ipc.IPC.IPC.WaitAsServer();
+
         Debug.Log("Starting companion app...");
 #if !COMPANION_DEBUG
+        Debug.LogFormat("UnityCef.Companion path: {0}", companionPath);
         Process.Start(companionPath).Dispose();
 #else
         Debug.LogWarning("COMPANION_DEBUG is set.\nPlease start companion app separately.");

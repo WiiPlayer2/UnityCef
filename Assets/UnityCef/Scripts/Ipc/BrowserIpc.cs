@@ -1,15 +1,18 @@
 using System;
+using System.Runtime.InteropServices;
 using SharedMemory;
 using UnityCef.Shared;
 using UnityCef.Shared.Ipc;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
+using System.IO.MemoryMappedFiles;
 
 namespace UnityCef.Unity.Ipc
 {
     public class BrowserIpc : BaseIpc, IBrowserIpc
     {
-        private SharedArray<byte> textureBuffer;
+        private UnityCef.Shared.SharedBuffer textureBuffer;
+        //private SharedArray<byte> textureBuffer;
         private byte[] textureData;
         private string textureName;
         private int textureWidth;
@@ -20,6 +23,7 @@ namespace UnityCef.Unity.Ipc
         {
             textureWidth = width;
             textureHeight = height;
+            textureData = new byte[textureWidth * textureHeight * 4];
         }
 
         public Texture2D Texture { get; private set; }
@@ -31,13 +35,14 @@ namespace UnityCef.Unity.Ipc
             if (Texture == null)
             {
                 Texture = new Texture2D(textureWidth, textureHeight, TextureFormat.BGRA32, false, true);
-                textureBuffer = new SharedArray<byte>(textureName);
-                textureData = new byte[textureBuffer.Length];
+                //textureBuffer = new SharedArray<byte>(textureName);
+                textureBuffer = new UnityCef.Shared.SharedBuffer(textureName, textureData.Length);
+                textureBuffer.Open();
             }
 
-            textureBuffer.AcquireReadLock();
+            //textureBuffer.AcquireReadLock();
             textureBuffer.CopyTo(textureData);
-            textureBuffer.ReleaseReadLock();
+            //textureBuffer.ReleaseReadLock();
 
             Texture.LoadRawTextureData(textureData);
             Texture.Apply();

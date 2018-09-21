@@ -24,9 +24,16 @@ namespace UnityCef.Shared
             return Prefix != null ? $"{Prefix}.{methodName}" : methodName;
         }
 
+        public virtual void Dispose(bool disposeIpc)
+        {
+            IPC.UnregisterObject(this);
+            if (disposeIpc)
+                IPC.Dispose();
+        }
+
         public void Dispose()
         {
-            IPC.Dispose();
+            Dispose(true);
         }
     }
 }

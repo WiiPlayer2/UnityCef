@@ -16,7 +16,7 @@ namespace UnityCef.Companion
 {
     class Program
     {
-        private static LogicIpc ipc = new LogicIpc(new MessageIpc(new TcpDataIpc(false)));
+        private static LogicIpc ipc;
         private static EventWaitHandle exitWait = new EventWaitHandle(false, EventResetMode.ManualReset);
 
         public static void ShowValue(string name, object value, TextWriter output = null)
@@ -66,6 +66,8 @@ namespace UnityCef.Companion
                     return exitCode;
 
                 mainProcess = true;
+                Console.WriteLine(">> Creating IPC connection...");
+                ipc = new LogicIpc(new MessageIpc(new TcpDataIpc(false)));
 
                 var settings = new CefSettings()
                 {
@@ -76,6 +78,7 @@ namespace UnityCef.Companion
                 };
 
                 CefRuntime.Initialize(mainArgs, settings, app, IntPtr.Zero);
+                Console.WriteLine(">> Sending ready signal...");
                 ipc.Ready();
 
                 exitWait.WaitOne();
@@ -102,6 +105,7 @@ namespace UnityCef.Companion
 
         public static void Exit()
         {
+            Console.WriteLine(">> Received shutdown signal...");
             exitWait.Set();
         }
 
