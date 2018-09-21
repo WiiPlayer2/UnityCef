@@ -339,15 +339,33 @@ Task("unity-package-clean")
 Task("unity-package")
 .IsDependentOn("unity-zip")
 .IsDependentOn("companion-libs-copy")
-.WithCriteria(!CheckTimestamp("./Assets/UnityCef") || !FileExists("./UnityCef.unitypackage"))
 .Does(() =>
 {
+    var commitHash = "nogit";
+    if(GitIsValidRepository("."))
+    {
+        var currentBranch = GitBranchCurrent(".");
+        var lastCommit = currentBranch.Tip;
+        commitHash = lastCommit.Sha.Substring(0, 6);
+
+        if(GitHasUncommitedChanges("."))
+        {
+            Warning("Repository has uncommited changes. Appending \"-dirty\" to hash.");
+            commitHash += "-dirty";
+        }
+    }
+    else
+    {
+        Warning("Not building from repository. Hash will be \"nogit\".");
+    }
+    var outPath = $"./UnityCef{package_version}.{commitHash}.unitypackage";
+
     Information("Packing Unity asset package...");
     TryGetUnityInstall(unity_version, out var unityPath);
-    var exitCode = StartProcess(unityPath, @"-projectPath ./ -quit -batchmode -exportPackage Assets/UnityCef UnityCef.unitypackage");
+    var exitCode = StartProcess(unityPath, $@"-projectPath ./ -quit -batchmode -exportPackage Assets/UnityCef {outPath}");
     if(exitCode != 0)
         throw new Exception("Failed to create asset package");
-    SetTimestamp("./UnityCef.unitypackage");
+    SetTimestamp(outPath);
 });
 
 // cake ////////////////////////////////////////////////////////////////////////////
@@ -362,6 +380,7 @@ Task("cake-vars")
         .WithToken("skip_update", skip_update.ToString().ToLower())
         .WithToken("skip_cef_build", skip_cef_build.ToString().ToLower())
         .WithToken("unity_version", unity_version)
+        .WithToken("package_version", package_version.ToString(2))
         .ToString();
     FileWriteText("./cake/vars.sample.cake", text);
 });
