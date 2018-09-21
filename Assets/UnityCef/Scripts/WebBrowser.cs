@@ -59,13 +59,13 @@ public class WebBrowser : MonoBehaviour
     }
 #endif
 
-    private static IEnumerator IncRef()
+    private static void IncRef()
     {
         lock(refCountLock)
         {
             refCount++;
             if(ipc == null)
-                yield return StartCompanion();
+                StartCompanion();
         }
     }
 
@@ -99,7 +99,7 @@ public class WebBrowser : MonoBehaviour
         }
     }
 
-    private static IEnumerator StartCompanion()
+    private static void StartCompanion()
     {
         ipc = new LogicIpc(new MessageIpc(new TcpDataIpc(true)));
         ipc.IPC.IPC.WaitAsServer();
@@ -111,7 +111,8 @@ public class WebBrowser : MonoBehaviour
 #else
         Debug.LogWarning("COMPANION_DEBUG is set.\nPlease start companion app separately.");
 #endif
-        yield return new WaitUntil(() => ipc.IsReady);
+
+        ipc.WaitReady();
     }
     
     private static void StopCompanion()
@@ -139,9 +140,9 @@ public class WebBrowser : MonoBehaviour
         DecRef();
     }
 
-    IEnumerator Start()
+    void Start()
     {
-        yield return IncRef();
+        IncRef();
         browserIpc = ipc.CreateBrowserWithIpc(Width, Height, StartUrl);
     }
 
