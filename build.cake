@@ -345,24 +345,27 @@ Task("unity-package")
 .IsDependentOn("companion-libs-copy")
 .Does(() =>
 {
-    var commitHash = "nogit";
+    var postfix = "nogit";
     if(GitIsValidRepository("."))
     {
         var currentBranch = GitBranchCurrent(".");
         var lastCommit = currentBranch.Tip;
-        commitHash = lastCommit.Sha.Substring(0, 6);
+        postfix = lastCommit.Sha.Substring(0, 6);
 
+        var hasUncommitedChanges = GitHasUncommitedChanges(".");
+        var hasUntrackedFiles = GitHasUntrackedFiles(".");
+        var hasStagedChanges = GitHasStagedChanges(".");
         if(GitHasUncommitedChanges("."))
         {
             Warning("Repository has uncommited changes. Appending \"-dirty\" to hash.");
-            commitHash += "-dirty";
+            postfix += "-dirty";
         }
     }
     else
     {
-        Warning("Not building from repository. Hash will be \"nogit\".");
+        Warning("Not building from repository. Postfix will be \"nogit\".");
     }
-    var outPath = $"./UnityCef{package_version}.{commitHash}.unitypackage";
+    var outPath = $"./UnityCef{package_version}.{postfix}.unitypackage";
 
     Information($"Packing {outPath}...");
     TryGetUnityInstall(unity_version, out var unityPath);
