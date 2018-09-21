@@ -1,4 +1,5 @@
 #load cake/vars.cake
+#load cake/helpers.cake
 //#module nuget:file:///d:/nuget/?package=Cake.Parallel.Module
 #addin nuget:?package=Cake.Git
 #addin nuget:?package=SharpZipLib
@@ -62,8 +63,10 @@ Setup(ctx =>
 
 Teardown(ctx =>
 {
-   // Executed AFTER the last task.
-   Information("Finished running tasks.");
+    Information("Committing new timestamps...");
+    CommitTimestamps();
+    // Executed AFTER the last task.
+    Information("Finished running tasks.");
 });
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -84,39 +87,7 @@ Task("tmp-clean")
 .OnError(exception =>
 {
     Warning("Failed to clean directory the normal way.");
-    Warning("Initiating force clean...");
-
-    var dirInfo = new DirectoryInfo("./tmp");
-    foreach(var f in dirInfo.EnumerateFiles("*", SearchOption.AllDirectories))
-    {
-        try
-        {
-            if(f.Attributes.HasFlag(FileAttributes.ReadOnly))
-                f.Attributes = f.Attributes & ~FileAttributes.ReadOnly;
-            f.Delete();
-        }
-        catch
-        {
-            Information(f.FullName);
-            Information(f.Attributes);
-            throw;
-        }
-    }
-    foreach(var d in dirInfo.EnumerateDirectories("*", SearchOption.AllDirectories))
-    {
-        try
-        {
-            if(d.Attributes.HasFlag(FileAttributes.ReadOnly))
-                d.Attributes = d.Attributes & ~FileAttributes.ReadOnly;
-            d.Delete();
-        }
-        catch
-        {
-            Information(d.FullName);
-            Information(d.Attributes);
-            throw;
-        }
-    }
+    ForceCleanDirectory("./tmp");
 });
 
 // cef ////////////////////////////////////////////////////////////////////////
@@ -163,6 +134,7 @@ Task("cef-download")
     {
         Information($"{fileName} already downloaded");
     }
+    SetTimestamp($"./tmp/cef_binary_{cef_version}_{platform}");
 });
 
 Task("cef-clean")
@@ -170,18 +142,18 @@ Task("cef-clean")
 {
     var cefDir = $"./cef_{platform}";
     Information($"Cleaning {cefDir}...");
-    EnsureDirectoryExists(cefDir);
-    CleanDirectory(cefDir);
+    DeleteDirectory(cefDir, true);
 });
 
 Task("cef-copy")
-.IsDependentOn("cef-clean")
 .IsDependentOn("companion-copy")
 .IsDependentOn("cef-download")
+.WithCriteria(!CheckTimestampsForEach(cefPlatforms, platform => $"./tmp/cef_binary_{cef_version}_{platform}"))
 .DoesForEach(cefPlatforms, (platform) => {
     Information($"Copying cef {platform} binaries...");
     var cefDir = $"./tmp/cef_binary_{cef_version}_{platform}";
     var cefOutDir = $"./cef_{platform}";
+    EnsureDirectoryExists(cefDir);
     CopyDirectory($"{cefDir}/Resources", cefOutDir);
     CopyDirectory($"{cefDir}/Release", cefOutDir);
 });
@@ -207,17 +179,21 @@ Task("cefglue-update")
 
 Task("cefglue-copy-headers")
 .IsDependentOn("cef-download")
-.IsDependentOn("cefglue-update")
+.IsDependentOn("cefglue-clone")
+.WithCriteria(!CheckTimestamp($"./tmp/cef_binary_{cef_version}_windows64"))
 .Does(() => {
     Information("Copying cef include files...");
     CleanDirectory("./cefglue/CefGlue.Interop.Gen/include");
     CopyDirectory($"./tmp/cef_binary_{cef_version}_windows64/include", "./cefglue/CefGlue.Interop.Gen/include");
     DeleteFile("./cefglue/CefGlue.Interop.Gen/include/cef_thread.h");
     DeleteFile("./cefglue/CefGlue.Interop.Gen/include/cef_waitable_event.h");
+
+    SetTimestamp("./cefglue/CefGlue.Interop.Gen/include");
 });
 
 Task("cefglue-generate-files")
 .IsDependentOn("cefglue-copy-headers")
+.WithCriteria(!CheckTimestamp("./cefglue/CefGlue.Interop.Gen/include"))
 .Does(() => {
     Information("Generate interop source files...");
     StartProcess(python27_path, new ProcessSettings
@@ -228,10 +204,13 @@ Task("cefglue-generate-files")
         WorkingDirectory = MakeAbsolute(Directory("./cefglue/CefGlue.Interop.Gen")),
     });
     DeleteFiles("./cefglue/CefGlue/**/*.disabled.cs");
+
+    SetTimestamp("./cefglue/CefGlue");
 });
 
 Task("cefglue-csproj")
 .IsDependentOn("cefglue-generate-files")
+.WithCriteria(!CheckTimestamp("./cefglue/CefGlue"))
 .Does(() => {
     Information("Update source files in project...");
     var dir = new DirectoryPath("./cefglue/CefGlue")
@@ -244,16 +223,20 @@ Task("cefglue-csproj")
     }
     compileOutputBuilder.AppendLine("    <None Include=\"..\\Xilium.CefGlue.snk\">\n      <Link>Properties\\Xilium.CefGlue.snk</Link>\n    </None>");
     XmlPoke("./cefglue/CefGlue/CefGlue.csproj", "//*[local-name() = 'Compile']/..", compileOutputBuilder.ToString());
+
+    SetTimestamp("./cefglue/CefGlue/CefGlue.csproj");
 });
 
 Task("cefglue-build")
 .IsDependentOn("cefglue-csproj")
+.WithCriteria(() => !CheckTimestamp("./cefglue/CefGlue/CefGlue.csproj"))
 .Does(() => {
     Information("Building cefglue...");
     MSBuild("./cefglue/CefGlue/CefGlue.csproj", config =>
         config.SetConfiguration("Release")
             .SetVerbosity(msbuild_verbosity)
             .WithConsoleLoggerParameter("ErrorsOnly"));
+    SetTimestamp("./cefglue/CefGlue/bin/Release");
 });
 
 // companion /////////////////////////////////////////////////////////////////////////////
@@ -265,8 +248,8 @@ Task("companion-clean")
 });
 
 Task("companion-build")
-.IsDependentOn("companion-clean")
 .IsDependentOn("cefglue-build")
+.WithCriteria(!CheckTimestamps("./cefglue/CefGlue/bin/Release", "./UnityCef.Companion"))
 .DoesForEach(new[]{ PlatformTarget.x86, PlatformTarget.x64 }, platform =>
 {
     Information($"Building companion app ({platform})...");
@@ -275,23 +258,23 @@ Task("companion-build")
         config.SetConfiguration("Release")
             .SetVerbosity(msbuild_verbosity)
             .SetPlatformTarget(platform));
+    SetTimestamp($"./UnityCef.Companion");
 });
 
 Task("companion-libs-copy")
 .IsDependentOn("companion-build")
-.IsDependentOn("unity-clean")
+.WithCriteria(!CheckTimestamp("./UnityCef.Companion"))
 .Does(() =>
 {
     Information("Copying companion libraries...");
     CopyFile("./UnityCef.Companion/UnityCef.Shared/bin/Release/netstandard2.0/UnityCef.Shared.dll", "./Assets/UnityCef/libs/UnityCef.Shared.dll");
-    CopyFile("./UnityCef.Companion/packages/SharedMemory.2.1.0/lib/net45/SharedMemory.dll", "./Assets/UnityCef/libs/SharedMemory.dll");
     CopyFile("./tools/Addins/SharpZipLib.1.0.0/lib/net45/ICSharpCode.SharpZipLib.dll", "./Assets/UnityCef/libs/ICSharpCode.SharpZipLib.dll");
+    SetTimestamp("./Assets/UnityCef");
 });
 
 Task("companion-copy")
-.IsDependentOn("cef-clean")
 .IsDependentOn("companion-build")
-.IsDependentOn("unity-clean")
+.WithCriteria(!CheckTimestamp("./UnityCef.Companion"))
 .DoesForEach(cefPlatforms, platform =>
 {
     var isX64 = platform.EndsWith("64");
@@ -301,6 +284,7 @@ Task("companion-copy")
 
     Information($"Copying companion {arch} binaries to {cefDir}...");
     CopyDirectory(binPath, cefDir);
+    SetTimestamp($"./cef_{platform}");
 });
 
 // unity ///////////////////////////////////////////////////////////////////////////
@@ -317,22 +301,28 @@ Task("unity-clean")
 Task("unity-zip")
 .IsDependentOn("companion-copy")
 .IsDependentOn("cef-copy")
+.WithCriteria(!CheckTimestamp("./UnityCef.Companion") || !CheckTimestampsForEach(cefPlatforms, platform => $"./cef_{platform}"))
 .DoesForEach(cefPlatforms, platform =>
 {
     var cefDir = $"./cef_{platform}";
     var zipFile = $"./Assets/UnityCef/Companion/{platform}.zip";
     Information($"Zipping {cefDir} to {zipFile}...");
     ZipCompress(cefDir, zipFile);
+    SetTimestamp($"./Assets/UnityCef");
 });
 
 Task("unity-package")
 .IsDependentOn("unity-zip")
 .IsDependentOn("companion-libs-copy")
+.WithCriteria(!CheckTimestamp("./Assets/UnityCef") || !FileExists("./UnityCef.unitypackage"))
 .Does(() =>
 {
     Information("Packing Unity asset package...");
     TryGetUnityInstall(unity_version, out var unityPath);
-    StartProcess(unityPath, @"-projectPath ./ -quit -batchmode -exportPackage Assets/UnityCef UnityCef.unitypackage");
+    var exitCode = StartProcess(unityPath, @"-projectPath ./ -quit -batchmode -exportPackage Assets/UnityCef UnityCef.unitypackage");
+    if(exitCode != 0)
+        throw new Exception("Failed to create asset package");
+    SetTimestamp("./UnityCef.unitypackage");
 });
 
 // cake ////////////////////////////////////////////////////////////////////////////
@@ -370,8 +360,7 @@ Task("dev-vs")
 Task("dev-unity-update")
 .IsDependentOn("cef-copy")
 .IsDependentOn("companion-copy")
-.IsDependentOn("companion-libs-copy")
-.IsDependentOn("unity-zip");
+.IsDependentOn("companion-libs-copy");
 
 Task("dev-unity")
 .IsDependentOn("dev-unity-update")
@@ -392,6 +381,26 @@ Task("dev-update")
 Task("dev")
 .IsDependentOn("dev-unity")
 .IsDependentOn("dev-vs");
+
+Task("clean")
+.IsDependentOn("tmp-clean")
+.IsDependentOn("cef-clean")
+.IsDependentOn("companion-clean")
+.IsDependentOn("unity-clean")
+.Does(() =>
+{
+    if(DirectoryExists("./cefglue"))
+    {
+        Information("Removing cefglue");
+        DeleteDirectory("./cefglue", true);
+    }
+})
+.OnError(exception =>
+{
+    Information("Failed to remove ./cefglue");
+    ForceCleanDirectory("./cefglue");
+    DeleteDirectory("./cefglue");
+});
 
 Task("Default")
 .IsDependentOn("unity-package");

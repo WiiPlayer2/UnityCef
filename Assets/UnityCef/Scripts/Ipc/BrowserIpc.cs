@@ -1,6 +1,5 @@
 using System;
 using System.Runtime.InteropServices;
-using SharedMemory;
 using UnityCef.Shared;
 using UnityCef.Shared.Ipc;
 using UnityEngine;
