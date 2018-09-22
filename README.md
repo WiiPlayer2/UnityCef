@@ -22,7 +22,7 @@ A web browser component for Unity
 2. Optional: Copy `cake/vars.sample.cake` to `cake/vars.cake` and edit values (most importantly `python27_path`).
 3. Run `build.ps1 -target unity-package`.
 
-If everything worked correctly you should now have a `UnityCef.X.Y.HASH.unitypackage` file in your directory.
+If everything worked correctly you should now have a `UnityCef-X.Y.HASH.unitypackage` file in your directory.
 
 ## Donate
 Please consider donating a bit to keep this and other projects going. It would mean a lot to me.
