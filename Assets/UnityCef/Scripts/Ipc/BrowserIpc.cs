@@ -47,5 +47,10 @@ namespace UnityCef.Unity.Ipc
         {
             return (string)IPC.Request(Ipc("GetSharedName"))[0];
         }
+
+        public void Close()
+        {
+            IPC.Send(Ipc("Close"));
+        }
     }
 }

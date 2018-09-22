@@ -362,13 +362,17 @@ Task("unity-package")
     {
         Warning("Not building from repository. Postfix will be \"nogit\".");
     }
-    var outPath = $"./UnityCef{package_version}.{postfix}.unitypackage";
+    var outPath = $"./UnityCef-{package_version}.{postfix}.unitypackage";
 
     Information($"Packing {outPath}...");
     TryGetUnityInstall(unity_version, out var unityPath);
-    var exitCode = StartProcess(unityPath, $@"-projectPath ./ -quit -batchmode -exportPackage Assets/UnityCef {outPath}");
-    if(exitCode != 0)
+    var result = CompileUnityPackage(unityPath, "./", "./Assets/UnityCef", outPath, out var compileStdout, out var compileStderr);
+    Information(string.Join("\n", compileStdout));
+    if(!result)
+    {
+        Error(string.Join("\n", compileStderr));
         throw new Exception("Failed to create asset package");
+    }
     SetTimestamp(outPath);
 });
 

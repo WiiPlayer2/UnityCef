@@ -1,4 +1,5 @@
 #addin "Cake.FileHelpers"
+using System.Threading;
 using System.Globalization;
 
 var timestampList = new HashSet<string>();
@@ -123,6 +124,9 @@ bool GitHasUncommitedChangesHACK(DirectoryPath repositoryPath)
         {
             Arguments = "diff --exit-code",
             WorkingDirectory = repositoryPath,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            Silent = true,
         });
         return exitCode == 1;
     }
@@ -130,5 +134,36 @@ bool GitHasUncommitedChangesHACK(DirectoryPath repositoryPath)
     {
         Error(e);
         return true;
+    }
+}
+
+bool CompileUnityPackage(FilePath unityPath, DirectoryPath projectPath, DirectoryPath assetPath, DirectoryPath outPath, out IEnumerable<string> stdout, out IEnumerable<string> stderr)
+{
+    try
+    {
+        var exitCode = StartProcess(unityPath, new ProcessSettings
+        {
+            Arguments = $@"-projectPath {projectPath} -quit -batchmode -exportPackage {assetPath} {outPath}",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            Silent = true,
+        });
+        Thread.Sleep(1000);
+        var logFile = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Unity/Editor/Editor.log");
+        var logLines = FileReadLines(logFile);
+        stdout = logLines
+            .SkipWhile(line => !line.StartsWith("-----CompilerOutput:-stdout"))
+            .Skip(1)
+            .TakeWhile(line => !line.StartsWith("-----CompilerOutput:-stderr"));
+        stderr = logLines
+            .SkipWhile(line => !line.StartsWith("-----CompilerOutput:-stderr"))
+            .Skip(1)
+            .TakeWhile(line => !line.StartsWith("-----EndCompilerOutput"));
+        return exitCode == 0;
+    }
+    catch(Exception e)
+    {
+        Error(e);
+        throw;
     }
 }
