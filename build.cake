@@ -343,6 +343,7 @@ Task("unity-package-clean")
 Task("unity-package")
 .IsDependentOn("unity-zip")
 .IsDependentOn("companion-libs-copy")
+.IsDependentOn("licenses")
 .Does(() =>
 {
     var postfix = "nogit";
@@ -455,6 +456,60 @@ Task("clean")
     DeleteDirectory("./cefglue");
 })
 .DeferOnError();
+
+Task("licenses")
+.IsDependentOn("cef-download")
+.Does(() =>
+{
+    Information("Creating LICENSES.txt file...");
+    EnsureDirectoryExists("./tmp/licenses");
+    DownloadFile("https://raw.githubusercontent.com/icsharpcode/SharpZipLib/master/LICENSE.txt", "./tmp/licenses/SharpZipLib");
+
+    var builder = new StringBuilder();
+    var add = new Action<string, string>((title, path) =>
+    {
+        const int MAX_LINE_WIDTH = 90;
+        var titleLength = title.Length + 2;
+        var spaceCount = (MAX_LINE_WIDTH - titleLength) / 2;
+
+        // Write first title border
+        for(var i = 0; i < MAX_LINE_WIDTH; i++)
+        {
+            builder.Append("=");
+        }
+        builder.AppendLine();
+
+        // Write title
+        for(var i = 0; i < spaceCount + titleLength % 2; i++)
+        {
+            builder.Append("=");
+        }
+        builder.Append($" {title} ");
+        for(var i = 0; i < spaceCount; i++)
+        {
+            builder.Append("=");
+        }
+        builder.AppendLine();
+
+        // Write second title border
+        for(var i = 0; i < MAX_LINE_WIDTH; i++)
+        {
+            builder.Append("=");
+        }
+        builder.AppendLine();
+
+        builder.AppendLine();
+        builder.AppendLine(FileReadText(path));
+        builder.AppendLine();
+        builder.AppendLine();
+    });
+
+    add("UnityCef", "./LICENSE");
+    add("Chromium Embedded Framework", $"./tmp/cef_binary_{cef_version}_windows32/LICENSE.txt");
+    add("SharpZipLib", "./tmp/licenses/SharpZipLib");
+
+    FileWriteText("./Assets/UnityCef/LICENSES.txt", builder.ToString());
+});
 
 Task("Default")
 .IsDependentOn("unity-package");
