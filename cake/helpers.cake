@@ -113,3 +113,22 @@ void ForceCleanDirectory(string path)
         }
     }
 }
+
+//HACK: Uses git executable even though Cake.Git is being used (but does not report the correct dirty status)
+bool GitHasUncommitedChangesHACK(DirectoryPath repositoryPath)
+{
+    try
+    {
+        var exitCode = StartProcess("git", new ProcessSettings
+        {
+            Arguments = "diff --exit-code",
+            WorkingDirectory = repositoryPath,
+        });
+        return exitCode == 1;
+    }
+    catch(Exception e)
+    {
+        Error(e);
+        return true;
+    }
+}

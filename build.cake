@@ -352,8 +352,7 @@ Task("unity-package")
         var currentBranch = GitBranchCurrent(".");
         var lastCommit = currentBranch.Tip;
         postfix = lastCommit.Sha.Substring(0, 8);
-        var diff = GitDiff(".", lastCommit.Sha);
-        if(false && GitHasUncommitedChanges(".")) //FIXME: Somehow it always returns true even if the repository is not dirty
+        if(GitHasUncommitedChangesHACK("."))
         {
             Warning("Repository has uncommited changes. Appending \"-dirty\" to hash.");
             postfix += "-dirty";
