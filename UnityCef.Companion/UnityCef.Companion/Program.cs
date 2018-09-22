@@ -108,34 +108,5 @@ namespace UnityCef.Companion
             Console.WriteLine(">> Received shutdown signal...");
             exitWait.Set();
         }
-
-        static async void Run()
-        {
-            await Task.Run(async () =>
-            {
-                var info = CefWindowInfo.Create();
-                info.WindowlessRenderingEnabled = true;
-                info.SetAsWindowless(IntPtr.Zero, true);
-
-                var client = new Client(ipc, 800, 600);
-
-                var settings = new CefBrowserSettings()
-                {
-                    JavaScript = CefState.Enabled,
-                    WebGL = CefState.Enabled,
-                    WebSecurity = CefState.Disabled,
-                    WindowlessFrameRate = 30,
-                };
-
-                CefBrowserHost.CreateBrowser(info, client, settings, "https://z0r.de/6830");
-
-                while (true)
-                {
-                    await Task.Delay(10000);
-                    Console.WriteLine("Snap!");
-                    client.GetImage()?.Save(@"D:\tmp\screenshot.png", ImageFormat.Png);
-                }
-            });
-        }
     }
 }

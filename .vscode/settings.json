@@ -52,5 +52,9 @@
         "ProjectSettings/":true,
         "temp/":true,
         "Temp/":true
-    }
+    },
+    "licenser.author": "Waldemar Tomme",
+    "licenser.disableAutoHeaderInsertion": true,
+    "licenser.license": "LGPLv3",
+    "licenser.projectName": "UnityCef"
 }

@@ -7,5 +7,7 @@ namespace UnityCef.Shared
     public interface IBrowserIpc
     {
         string GetSharedName();
+
+        void Close();
     }
 }

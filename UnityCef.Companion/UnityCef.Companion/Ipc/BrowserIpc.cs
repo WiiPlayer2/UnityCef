@@ -20,6 +20,12 @@ namespace UnityCef.Companion.Ipc
         public Client Client { get; private set; }
 
         [MessageIpc.Method]
+        public void Close()
+        {
+            Client.LifeSpanHandler.Browser.GetHost().CloseBrowser(true);
+        }
+
+        [MessageIpc.Method]
         public string GetSharedName()
         {
             return Client.RenderHandler.SharedName;

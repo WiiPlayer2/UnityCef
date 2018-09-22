@@ -10,7 +10,6 @@ namespace UnityCef.Companion.Cef
     {
         private static Dictionary<int, Client> clients = new Dictionary<int, Client>();
         
-        private readonly LifeSpanHandler lifeSpanHandler;
         private EventWaitHandle registerWait = new EventWaitHandle(false, EventResetMode.ManualReset);
 
         public Client(LogicIpc ipc, int renderWidth, int renderHeight)
@@ -18,7 +17,7 @@ namespace UnityCef.Companion.Cef
             IPC = ipc;
 
             RenderHandler = new RenderHandler(this, renderWidth, renderHeight);
-            lifeSpanHandler = new LifeSpanHandler(this);
+            LifeSpanHandler = new LifeSpanHandler(this);
         }
 
         public static Client Get(int identifier)
@@ -32,6 +31,8 @@ namespace UnityCef.Companion.Cef
 
         public RenderHandler RenderHandler { get; private set; }
 
+        public LifeSpanHandler LifeSpanHandler { get; private set; }
+
         public int Identifier { get; set; }
 
         public Image GetImage()
@@ -44,6 +45,7 @@ namespace UnityCef.Companion.Cef
             registerWait.WaitOne();
         }
 
+        #region Registration
         public void RegisterClient(int identifier)
         {
             Identifier = identifier;
@@ -58,7 +60,9 @@ namespace UnityCef.Companion.Cef
             lock (clients)
                 clients.Remove(Identifier);
         }
+        #endregion
 
+        #region Overrides
         protected override CefRenderHandler GetRenderHandler()
         {
             return RenderHandler;
@@ -66,7 +70,8 @@ namespace UnityCef.Companion.Cef
 
         protected override CefLifeSpanHandler GetLifeSpanHandler()
         {
-            return lifeSpanHandler;
+            return LifeSpanHandler;
         }
+        #endregion
     }
 }
