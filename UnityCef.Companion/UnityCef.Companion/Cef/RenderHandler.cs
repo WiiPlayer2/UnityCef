@@ -1,5 +1,4 @@
-﻿using SharedMemory;
-using System;
+﻿using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
@@ -10,7 +9,6 @@ namespace UnityCef.Companion.Cef
     class RenderHandler : CefRenderHandler
     {
         private UnityCef.Shared.SharedBuffer sharedBuffer;
-        //private SharedArray<byte> sharedBuffer;
         private readonly Guid sharedMemGuid = Guid.NewGuid();
         private int width;
         private int height;
@@ -24,7 +22,6 @@ namespace UnityCef.Companion.Cef
             Client = client;
             
             imageData = new byte[width * height * 4];
-            //sharedBuffer = new SharedArray<byte>(sharedMemGuid.ToString(), imageData.Length);
             sharedBuffer = new Shared.SharedBuffer(sharedMemGuid.ToString(), imageData.Length);
             Console.WriteLine($">> Creating buffer {sharedMemGuid}...");
             sharedBuffer.Create();
@@ -85,10 +82,6 @@ namespace UnityCef.Companion.Cef
             this.width = width;
             this.height = height;
             Marshal.Copy(buffer, imageData, 0, imageData.Length);
-
-            //sharedBuffer.AcquireWriteLock();
-            //sharedBuffer.Write(imageData);
-            //sharedBuffer.ReleaseWriteLock();
 
             sharedBuffer.CopyFrom(imageData);
         }

@@ -1,5 +1,5 @@
 # UnityCef
-A Webbrowser component for Unity3D.
+A web browser component for Unity
 
 [![GitHub release](https://img.shields.io/github/release/WiiPlayer2/UnityCef.svg)](https://github.com/WiiPlayer2/UnityCef/releases/latest)
 [![Github Releases](https://img.shields.io/github/downloads/WiiPlayer2/UnityCef/total.svg)](https://github.com/WiiPlayer2/UnityCef/releases/latest)
@@ -18,7 +18,7 @@ A Webbrowser component for Unity3D.
 - Unity (required for building the package)
 
 ### Steps
-1. Check out or download the repository.
+1. Clone or download the repository.
 2. Optional: Copy `cake/vars.sample.cake` to `cake/vars.cake` and edit values (most importantly `python27_path`).
 3. Run `build.ps1 -target unity-package`.
 

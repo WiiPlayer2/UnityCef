@@ -11,7 +11,6 @@ namespace UnityCef.Unity.Ipc
     public class BrowserIpc : BaseIpc, IBrowserIpc
     {
         private UnityCef.Shared.SharedBuffer textureBuffer;
-        //private SharedArray<byte> textureBuffer;
         private byte[] textureData;
         private string textureName;
         private int textureWidth;
@@ -34,14 +33,11 @@ namespace UnityCef.Unity.Ipc
             if (Texture == null)
             {
                 Texture = new Texture2D(textureWidth, textureHeight, TextureFormat.BGRA32, false, true);
-                //textureBuffer = new SharedArray<byte>(textureName);
                 textureBuffer = new UnityCef.Shared.SharedBuffer(textureName, textureData.Length);
                 textureBuffer.Open();
             }
 
-            //textureBuffer.AcquireReadLock();
             textureBuffer.CopyTo(textureData);
-            //textureBuffer.ReleaseReadLock();
 
             Texture.LoadRawTextureData(textureData);
             Texture.Apply();
