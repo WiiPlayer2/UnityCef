@@ -8,6 +8,7 @@ Assets
 Assets/UnityCef/Companion/*
 Assets/UnityCef/libs/*
 Assets/UnityCef/Scripts/**/*.g.cs
+Assets/UnityCef/Scripts/**/*.g.cs.meta
 
 blob_storage
 GPUCache
