@@ -11,16 +11,11 @@ using Debug = UnityEngine.Debug;
 
 public class WebBrowser : MonoBehaviour
 {
+    #region Static
     private static readonly string companionPath;
     private static readonly object refCountLock = new object();
     private static int refCount = 0;
     private static LogicIpc ipc;
-
-    public int Width = 800;
-    public int Height = 600;
-    public string StartUrl = "";
-
-    private BrowserIpc browserIpc;
 
     static WebBrowser()
     {
@@ -111,8 +106,6 @@ public class WebBrowser : MonoBehaviour
 #else
         Debug.LogWarning("COMPANION_DEBUG is set.\nPlease start companion app separately.");
 #endif
-
-        ipc.WaitReady();
     }
     
     private static void StopCompanion()
@@ -123,6 +116,37 @@ public class WebBrowser : MonoBehaviour
             ipc.Shutdown();
             ipc.Dispose();
         }
+    }
+    #endregion
+
+    public int Width = 800;
+    public int Height = 600;
+    public string StartUrl = "";
+    private BrowserIpc browserIpc;
+
+    void OnEnable()
+    {
+        IncRef();
+        StartCoroutine(Init());
+    }
+
+    private IEnumerator Init()
+    {
+        yield return new WaitUntil(() => ipc.IsReady);
+
+        var tex = browserIpc != null ? browserIpc.Texture : null;
+        browserIpc = ipc.CreateBrowserWithIpc(Width, Height, StartUrl);
+        browserIpc.Init(tex);
+    }
+
+    void OnDisable()
+    {
+        if(browserIpc != null)
+        {
+            browserIpc.Close();
+            browserIpc.Dispose(false);
+        }
+        DecRef();
     }
 
     public Texture2D Texture
@@ -135,20 +159,19 @@ public class WebBrowser : MonoBehaviour
         }
     }
 
-    ~WebBrowser()
-    {
-        DecRef();
-    }
-
-    void Start()
-    {
-        IncRef();
-        browserIpc = ipc.CreateBrowserWithIpc(Width, Height, StartUrl);
-    }
-
     void Update()
     {
         if(browserIpc != null)
             browserIpc.Update();
+    }
+
+    public void Navigate(string url)
+    {
+        browserIpc.Navigate(url);
+    }
+
+    public void ExecuteJS(string code)
+    {
+        browserIpc.ExecuteJS(code);
     }
 }

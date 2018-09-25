@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
 using UnityCef.Shared.Ipc;
 
@@ -19,7 +20,7 @@ namespace UnityCef.Shared
 
         public string Prefix { get; private set; }
 
-        protected string Ipc(string methodName)
+        protected string MethodName([CallerMemberName]string methodName = "")
         {
             return Prefix != null ? $"{Prefix}.{methodName}" : methodName;
         }

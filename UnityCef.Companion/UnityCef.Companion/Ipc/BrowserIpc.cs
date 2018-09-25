@@ -22,13 +22,36 @@ namespace UnityCef.Companion.Ipc
         [MessageIpc.Method]
         public void Close()
         {
-            Client.LifeSpanHandler.Browser.GetHost().CloseBrowser(true);
+            Client.Host.CloseBrowser(true);
+        }
+
+        [MessageIpc.Method]
+        public void ExecuteJS(string code)
+        {
+            Client.MainFrame.ExecuteJavaScript(code, "", 1);
         }
 
         [MessageIpc.Method]
         public string GetSharedName()
         {
             return Client.RenderHandler.SharedName;
+        }
+
+        [MessageIpc.Method]
+        public void Navigate(string url)
+        {
+            Client.MainFrame.LoadUrl(url);
+        }
+
+        public void OnConsoleMessage(LogLevel level, string message, string source, int line)
+        {
+            IPC.Send(MethodName(), level, message, source, line);
+        }
+
+        [MessageIpc.Method]
+        public void SetFramerate(int framerate)
+        {
+            Client.Host.SetWindowlessFrameRate(framerate);
         }
     }
 }

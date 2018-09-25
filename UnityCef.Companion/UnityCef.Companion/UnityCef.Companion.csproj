@@ -72,6 +72,9 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject />
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -89,6 +92,7 @@
   <ItemGroup>
     <Compile Include="Cef\App.cs" />
     <Compile Include="Cef\Client.cs" />
+    <Compile Include="Cef\DisplayHandler.cs" />
     <Compile Include="Cef\LifeSpanHandler.cs" />
     <Compile Include="Cef\RenderHandler.cs" />
     <Compile Include="Ipc\BrowserIpc.cs" />

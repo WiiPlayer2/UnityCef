@@ -6,11 +6,13 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
 using System.Diagnostics;
+using System.ComponentModel;
 
 namespace UnityCef.Shared.Ipc
 {
     public class MessageIpc : IDisposable
     {
+        [AttributeUsage(AttributeTargets.Method, Inherited = true)]
         public class MethodAttribute : Attribute
         {
             public MethodAttribute(string methodName = null)
@@ -29,8 +31,6 @@ namespace UnityCef.Shared.Ipc
             Data,
             Array,
         }
-
-        private const string IPC_DEFAULT_GUID = "{1A96751A-9E69-41D2-8DCA-6C9926990458}";
 
         private readonly IDataIpc ipc;
         private readonly Dictionary<object, IList<string>> objectMethods;
@@ -87,11 +87,14 @@ namespace UnityCef.Shared.Ipc
 
         public void UnregisterObject(object obj)
         {
-            foreach(var m in objectMethods[obj])
+            if (objectMethods.ContainsKey(obj))
             {
-                methods.Remove(m);
+                foreach (var m in objectMethods[obj])
+                {
+                    methods.Remove(m);
+                }
+                objectMethods.Remove(obj);
             }
-            objectMethods.Remove(obj);
         }
 
         public void RegisterObject(object obj, Func<MethodInfo, MethodAttribute, string> namingScheme = null)
@@ -124,21 +127,25 @@ namespace UnityCef.Shared.Ipc
             {
                 case ValueType.Null:
                     break;
+
                 case ValueType.Integer:
                     ret = BitConverter.ToInt32(buffer, index + 1);
                     len += 4;
                     break;
+
                 case ValueType.String:
                     var length = BitConverter.ToInt32(buffer, index + 1);
                     ret = Encoding.UTF8.GetString(buffer, index + 5, length);
                     len += 4 + length;
                     break;
+
                 case ValueType.Data:
                     length = BitConverter.ToInt32(buffer, index + 1);
                     ret = new byte[length];
                     Array.Copy(buffer, index + 5, (byte[])ret, 0, length);
                     len += 4 + length;
                     break;
+
                 case ValueType.Array:
                     length = BitConverter.ToInt32(buffer, index + 1);
                     ret = new object[length];
@@ -151,6 +158,7 @@ namespace UnityCef.Shared.Ipc
                     }
                     len += offset - 1;
                     break;
+
                 default:
                     throw new NotImplementedException($"{type} is not implemented.");
             }
@@ -170,6 +178,7 @@ namespace UnityCef.Shared.Ipc
 
         private void WriteValue(BinaryWriter writer, object value)
         {
+            var type = value?.GetType();
             if(value == null)
             {
                 writer.Write((byte)ValueType.Null);
@@ -186,6 +195,11 @@ namespace UnityCef.Shared.Ipc
                 var data = Encoding.UTF8.GetBytes(str);
                 writer.Write(data.Length);
                 writer.Write(data);
+            }
+            else if(value is Enum)
+            {
+                var underlyingVal = Convert.ChangeType(value, Enum.GetUnderlyingType(type));
+                WriteValue(writer, underlyingVal);
             }
             else if(value is byte[])
             {
@@ -213,12 +227,12 @@ namespace UnityCef.Shared.Ipc
 
         private Tuple<bool, byte[]> OnCall(byte[] data)
         {
-            var index = 0;
-            var methodName = ReadValue<string>(data, ref index);
-            var args = ReadValue<object[]>(data, ref index);
-
             try
             {
+                var index = 0;
+                var methodName = ReadValue<string>(data, ref index);
+                var args = ReadValue<object[]>(data, ref index);
+
                 var objs = methods[methodName](args);
 
                 using (var stream = new MemoryStream())

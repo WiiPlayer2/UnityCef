@@ -213,7 +213,7 @@ Task("cefglue-copy-headers")
 
 Task("cefglue-generate-files")
 .IsDependentOn("cefglue-copy-headers")
-.WithCriteria(!CheckTimestamp("./cefglue/CefGlue.Interop.Gen/include"))
+//.WithCriteria(!CheckTimestamp("./cefglue/CefGlue.Interop.Gen/include"))
 .Does(() => {
     Information("Generate interop source files...");
     StartProcess(python27_path, new ProcessSettings
@@ -319,9 +319,42 @@ Task("unity-clean")
 })
 .DeferOnError();
 
+Task("unity-generate")
+.IsDependentOn("companion-copy")
+.IsDependentOn("cef-copy")
+.Does(() =>
+{
+    var hash = "nogit";
+    if(GitIsValidRepository("."))
+    {
+        var currentBranch = GitBranchCurrent(".");
+        var lastCommit = currentBranch.Tip;
+        hash = lastCommit.Sha;
+        if(GitHasUncommitedChangesHACK("."))
+        {
+            Warning("Repository has uncommited changes. Appending \"-dirty\" to hash.");
+            hash += "-dirty";
+        }
+    }
+    else
+    {
+        Warning("Not building from repository. Hash will be \"nogit\".");
+    }
+
+    var text = TransformTextFile("./Assets/UnityCef/Editor/Constants.g.cs.template")
+        .WithToken($"hash", hash)
+        .ToString();
+    FileWriteText("./Assets/UnityCef/Editor/Constants.g.cs", text);
+    foreach(var platform in cefPlatforms)
+    {
+        FileWriteText($"./cef_{platform}/hash", hash);
+    }
+});
+
 Task("unity-zip")
 .IsDependentOn("companion-copy")
 .IsDependentOn("cef-copy")
+.IsDependentOn("unity-generate")
 .WithCriteria(!CheckTimestamp("./UnityCef.Companion") || !CheckTimestampsForEach(cefPlatforms, platform => $"./cef_{platform}"))
 .DoesForEach(cefPlatforms, platform =>
 {

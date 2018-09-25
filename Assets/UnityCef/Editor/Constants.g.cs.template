@@ -1,0 +1,7 @@
+namespace UnityCef.Unity
+{
+    public static partial class Constants
+    {
+        public const string HASH= "<%hash%>";
+    }
+}

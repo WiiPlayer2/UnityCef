@@ -6,15 +6,35 @@ using UnityEditor.Build.Reporting;
 using System.IO;
 using ICSharpCode.SharpZipLib.Zip;
 using ICSharpCode.SharpZipLib.Core;
+using UnityCef.Unity;
 
 [InitializeOnLoad]
 public class CheckAndUpdate : IPreprocessBuildWithReport
 {
     static CheckAndUpdate()
     {
+        EditorApplication.update += Update;
+        Check();
+    }
+
+    private static void Update()
+    {
+        if(!EditorApplication.isUpdating
+            && !EditorApplication.isCompiling)
+        {
+            Check();
+        }
+    }
+
+    private static void Check()
+    {
         var platform = WebBrowser.CefPlatform;
         var cefDir = Path.GetFullPath(string.Format("./cef_{0}", platform));
-        if(!Directory.Exists(cefDir))
+        var hashFile = Path.Combine(cefDir, "hash");
+
+        if(!Directory.Exists(cefDir)
+            || !File.Exists(hashFile)
+            || File.ReadAllText(hashFile) != Constants.HASH)
         {
             Extract(platform, cefDir);
         }
