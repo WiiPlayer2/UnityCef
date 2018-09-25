@@ -77,7 +77,6 @@ namespace UnityCef.Unity.Ipc
             IPC.Send(MethodName(), framerate);
         }
 
-        //TODO: Instead of implementing it, call an event
         [MessageIpc.Method]
         public void OnConsoleMessage(LogLevel level, string message, string source, int line)
         {
