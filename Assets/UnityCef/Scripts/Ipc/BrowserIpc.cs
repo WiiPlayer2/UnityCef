@@ -15,12 +15,14 @@ namespace UnityCef.Unity.Ipc
         private string textureName;
         private int textureWidth;
         private int textureHeight;
+        private WebBrowser component;
 
-        public BrowserIpc(MessageIpc ipc, int identifier, int width, int height)
+        public BrowserIpc(MessageIpc ipc, int identifier, int width, int height, WebBrowser component)
             : base(ipc, identifier.ToString())
         {
             textureWidth = width;
             textureHeight = height;
+            this.component = component;
             textureData = new byte[textureWidth * textureHeight * 4];
         }
 
@@ -79,23 +81,7 @@ namespace UnityCef.Unity.Ipc
         [MessageIpc.Method]
         public void OnConsoleMessage(LogLevel level, string message, string source, int line)
         {
-            var output = string.Format("{0}:{1}\n{2}", source, line, message);
-            switch (level)
-            {
-                case LogLevel.Info:
-                case LogLevel.Debug:
-                    Debug.Log(output);
-                    break;
-                case LogLevel.Warning:
-                    Debug.LogWarning(output);
-                    break;
-                case LogLevel.Error:
-                    Debug.LogError(output);
-                    break;
-                default:
-                    Debug.LogWarningFormat("Log level {0} not implemented.\n{1}", level, output);
-                    break;
-            }
+            component.OnConsoleMessage.Invoke(level, message, source, line);
         }
     }
 }

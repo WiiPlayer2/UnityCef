@@ -17,10 +17,10 @@ namespace UnityCef.Unity.Ipc
 
         public bool IsReady { get; private set; }
 
-        public BrowserIpc CreateBrowserWithIpc(int width, int height, string url = "")
+        public BrowserIpc CreateBrowserWithIpc(WebBrowser component, int width, int height, string url = "")
         {
             var id = CreateBrowser(width, height, url);
-            return new BrowserIpc(IPC, id, width, height);
+            return new BrowserIpc(IPC, id, width, height, component);
         }
 
         public int CreateBrowser(int width, int height, string url = "")

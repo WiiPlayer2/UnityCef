@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using UnityCef.Shared.Ipc;
+using UnityCef.Unity;
 using UnityCef.Unity.Ipc;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
@@ -115,6 +116,7 @@ public class WebBrowser : MonoBehaviour
             Debug.Log("Stopping companion app...");
             ipc.Shutdown();
             ipc.Dispose();
+            ipc = null;
         }
     }
     #endregion
@@ -122,6 +124,9 @@ public class WebBrowser : MonoBehaviour
     public int Width = 800;
     public int Height = 600;
     public string StartUrl = "";
+
+    public OnConsoleMessageEvent OnConsoleMessage;
+
     private BrowserIpc browserIpc;
 
     void OnEnable()
@@ -135,7 +140,7 @@ public class WebBrowser : MonoBehaviour
         yield return new WaitUntil(() => ipc.IsReady);
 
         var tex = browserIpc != null ? browserIpc.Texture : null;
-        browserIpc = ipc.CreateBrowserWithIpc(Width, Height, StartUrl);
+        browserIpc = ipc.CreateBrowserWithIpc(this, Width, Height, StartUrl);
         browserIpc.Init(tex);
     }
 
