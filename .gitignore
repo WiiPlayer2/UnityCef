@@ -2,8 +2,13 @@ cef_*
 tmp
 *.log
 cake/vars.cake
+
+Assets
+!Assets/UnityCef
 Assets/UnityCef/Companion/*
 Assets/UnityCef/libs/*
+Assets/UnityCef/Scripts/**/*.g.cs
+
 blob_storage
 GPUCache
 cefglue
