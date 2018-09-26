@@ -1,12 +1,13 @@
-using UnityEngine;
-using UnityEditor;
+using ICSharpCode.SharpZipLib.Core;
+using ICSharpCode.SharpZipLib.Zip;
 using System;
+using System.IO;
+using System.Linq;
+using UnityCef.Unity;
+using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
-using System.IO;
-using ICSharpCode.SharpZipLib.Zip;
-using ICSharpCode.SharpZipLib.Core;
-using UnityCef.Unity;
+using UnityEngine;
 
 [InitializeOnLoad]
 public class CheckAndUpdate : IPreprocessBuildWithReport
@@ -28,6 +29,8 @@ public class CheckAndUpdate : IPreprocessBuildWithReport
 
     private static void Check()
     {
+        CheckGit();
+
         var platform = WebBrowser.CefPlatform;
         var cefDir = Path.GetFullPath(string.Format("./cef_{0}", platform));
         var hashFile = Path.Combine(cefDir, "hash");
@@ -37,6 +40,35 @@ public class CheckAndUpdate : IPreprocessBuildWithReport
             || File.ReadAllText(hashFile) != Constants.HASH)
         {
             Extract(platform, cefDir);
+        }
+    }
+
+    private static void CheckGit()
+    {
+        var currDir = Path.GetFullPath("./");
+        var gitDir = Path.Combine(currDir, ".git");
+        var gitignore = Path.Combine(currDir, ".gitignore");
+        if(File.Exists(gitDir))
+        {
+            var shouldContain = new[]
+            {
+                "cef_*",
+                "*.log",
+                "blob_storage",
+                "GPUCache",
+            };
+            var warn = true;
+            if(File.Exists(gitignore))
+            {
+                var lines = File.ReadAllLines(gitignore);
+                if(shouldContain.Aggregate(true, (acc, curr) => acc && lines.Contains(curr)))
+                    warn = false;
+            }
+            if(warn)
+            {
+                Debug.LogFormat("Missing entries in .gitignore. You should add the following entries in your .gitignore file:\n{0}",
+                    string.Join("\n", shouldContain));
+            }
         }
     }
 
