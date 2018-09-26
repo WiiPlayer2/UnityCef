@@ -11,6 +11,8 @@ A web browser component for Unity
 2. Add the `WebBrowser` component to an object.
 3. `WebBrowser.Texture` is a `Texture2D` of the rendered web content.
 
+**NOTE:** UnityCef only works with `.NET 4.x Equivalent` as scripting runtime version. If you get a lot of errors about not finding stuff this might be the problem.
+
 ## Building
 ### Requirements
 - Python 2.7 (required for building cefglue)
