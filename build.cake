@@ -379,6 +379,9 @@ Task("unity-package")
 .IsDependentOn("licenses")
 .Does(() =>
 {
+    if(FileReadLines("./Assets/UnityCef/Scripts/WebBrowser.cs").Contains("#define COMPANION_DEBUG"))
+        throw new Exception("COMPANION_DEBUG flag is still set in WebBrowser.cs. Cannot build package while flag is set.");
+
     var postfix = "nogit";
     if(GitIsValidRepository("."))
     {
