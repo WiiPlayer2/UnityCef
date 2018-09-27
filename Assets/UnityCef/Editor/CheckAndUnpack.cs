@@ -1,5 +1,3 @@
-using ICSharpCode.SharpZipLib.Core;
-using ICSharpCode.SharpZipLib.Zip;
 using System;
 using System.IO;
 using System.Linq;
@@ -12,6 +10,8 @@ using UnityEngine;
 [InitializeOnLoad]
 public class CheckAndUpdate : IPreprocessBuildWithReport
 {
+    private const string FASTZIP_NAME = "ICSharpCode.SharpZipLib.Zip.FastZip, ICSharpCode.SharpZipLib, Version=1.0.0.999, Culture=neutral, PublicKeyToken=1b03e6acf1164f73";
+
     static CheckAndUpdate()
     {
         EditorApplication.update += Update;
@@ -80,8 +80,10 @@ public class CheckAndUpdate : IPreprocessBuildWithReport
             Debug.LogWarningFormat("{0} not found.\nMaybe your platform is not supported?", zipFile);
             return;
         }
+
         Debug.LogFormat("Unzipping {0} to {1}...", zipFile, outDir);
-        var zip = new FastZip();
+        var fastzipType = Type.GetType(FASTZIP_NAME);
+        dynamic zip = Activator.CreateInstance(fastzipType);
         zip.ExtractZip(zipFile, outDir, "");
     }
 
