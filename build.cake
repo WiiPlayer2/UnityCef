@@ -556,10 +556,11 @@ Task("publish")
 .WithCriteria(() => GitHasUncommitedChangesHACK("."))
 .Does(() =>
 {
-    var hash = GitLogTip(".").Sha.Substring(0, 8);
+    var commit = GitLogTip(".");
+    var hash = commit.Sha.Substring(0, 8);
     var tag = $"v{package_version}.{hash}";
     GitTag(".", tag);
-    GitPush(".");
+    Information($"Tag \"{tag}\" added to commit {commit.Sha}");
 });
 
 Task("Default")
