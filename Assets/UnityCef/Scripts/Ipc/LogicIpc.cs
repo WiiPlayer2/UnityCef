@@ -46,6 +46,11 @@ namespace UnityCef.Unity.Ipc
         {
             IPC.Send("Shutdown");
         }
+
+        public void Ping()
+        {
+            IPC.Send(MethodName());
+        }
     }
 }
 #endif

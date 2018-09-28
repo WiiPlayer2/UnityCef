@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Timers;
 using UnityCef.Companion.Cef;
 using UnityCef.Shared;
 using UnityCef.Shared.Ipc;
@@ -10,8 +11,15 @@ namespace UnityCef.Companion.Ipc
 {
     public class LogicIpc : BaseIpc, ILogicIpc
     {
+        private readonly Timer pingTimer = new Timer(60 * 1000);
+
         public LogicIpc(MessageIpc ipc)
-            : base(ipc) { }
+            : base(ipc)
+        {
+            pingTimer.Elapsed += PingTimeout;
+            pingTimer.AutoReset = true;
+            pingTimer.Start();
+        }
 
         [MessageIpc.Method]
         public int CreateBrowser(int width, int height, string url = "")
@@ -34,6 +42,19 @@ namespace UnityCef.Companion.Ipc
 
             client.WaitForRegister();
             return client.Identifier;
+        }
+
+        [MessageIpc.Method]
+        public void Ping()
+        {
+            pingTimer.Stop();
+            pingTimer.Interval = pingTimer.Interval;
+            pingTimer.Start();
+        }
+
+        private void PingTimeout(object sender, ElapsedEventArgs e)
+        {
+            Shutdown();
         }
 
         public void Ready()

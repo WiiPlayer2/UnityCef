@@ -31,7 +31,7 @@ public class CheckAndUpdate
     private static void Check()
     {
 #if !NET_4_X
-        throw new Exception("UnityCef does only work with script runtime version '.NET 4.x Equivalent'.");
+        throw new Exception("UnityCef does only work with scripting runtime version '.NET 4.x Equivalent'.");
     }
 }
 #else

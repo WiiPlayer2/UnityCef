@@ -134,6 +134,7 @@ public class WebBrowser : MonoBehaviour
     {
         IncRef();
         StartCoroutine(Init());
+        StartCoroutine(Ping());
     }
 
     private IEnumerator Init()
@@ -145,8 +146,18 @@ public class WebBrowser : MonoBehaviour
         browserIpc.Init(tex);
     }
 
+    private IEnumerator Ping()
+    {
+        while(true)
+        {
+            ipc.Ping();
+            yield return new WaitForSeconds(30);
+        }
+    }
+
     void OnDisable()
     {
+        StopAllCoroutines();
         if(browserIpc != null)
         {
             browserIpc.Close();

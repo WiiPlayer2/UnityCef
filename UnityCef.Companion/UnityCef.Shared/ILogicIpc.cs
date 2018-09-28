@@ -6,6 +6,8 @@ namespace UnityCef.Shared
 {
     public interface ILogicIpc
     {
+        void Ping();
+
         void Ready();
 
         int CreateBrowser(int width, int height, string url = "");
