@@ -104,7 +104,11 @@ public class WebBrowser : MonoBehaviour
         Debug.Log("Starting companion app...");
 #if !COMPANION_DEBUG
         Debug.LogFormat("UnityCef.Companion path: {0}", companionPath);
-        Process.Start(companionPath).Dispose();
+        var psi = new ProcessStartInfo(companionPath)
+        {
+            WindowStyle = ProcessWindowStyle.Hidden,
+        };
+        Process.Start(psi).Dispose();
 #else
         Debug.LogWarning("COMPANION_DEBUG is set.\nPlease start companion app separately.");
 #endif
