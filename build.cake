@@ -550,6 +550,18 @@ Task("licenses")
     FileWriteText("./Assets/UnityCef/LICENSES.txt", builder.ToString());
 });
 
+Task("publish")
+.IsDependentOn("clean")
+.IsDependentOn("unity-package")
+.WithCriteria(() => GitHasUncommitedChangesHACK("."))
+.Does(() =>
+{
+    var hash = GitLogTip(".").Sha.Substring(0, 8);
+    var tag = $"v{package_version}.{hash}";
+    GitTag(".", tag);
+    GitPush(".");
+});
+
 Task("Default")
 .IsDependentOn("unity-package");
 
