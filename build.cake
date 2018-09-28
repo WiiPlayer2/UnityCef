@@ -551,6 +551,7 @@ Task("licenses")
 });
 
 Task("publish")
+.IsDependentOn("cake-vars")
 .IsDependentOn("clean")
 .IsDependentOn("unity-package")
 .WithCriteria(() => GitHasUncommitedChangesHACK("."))
