@@ -1,4 +1,5 @@
 //#define COMPANION_DEBUG
+#if NET_4_6 || NET_STANDARD_2_0
 using System;
 using System.Collections;
 using System.Diagnostics;
@@ -180,3 +181,4 @@ public class WebBrowser : MonoBehaviour
         browserIpc.ExecuteJS(code);
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if NET_4_6 || NET_STANDARD_2_0
 using System;
 using System.Runtime.InteropServices;
 using UnityCef.Shared;
@@ -84,3 +85,4 @@ namespace UnityCef.Unity.Ipc
         }
     }
 }
+#endif

@@ -1,3 +1,7 @@
+#if NET_4_6 || NET_STANDARD_2_0
+#define NET_4_X
+#endif
+
 using System;
 using System.IO;
 using System.Linq;
@@ -7,28 +11,30 @@ using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
 
-[InitializeOnLoad]
-public class CheckAndUpdate : IPreprocessBuildWithReport
-{
-    private const string FASTZIP_NAME = "ICSharpCode.SharpZipLib.Zip.FastZip, ICSharpCode.SharpZipLib, Version=1.0.0.999, Culture=neutral, PublicKeyToken=1b03e6acf1164f73";
+#if NET_4_X
+using ICSharpCode.SharpZipLib.Core;
+using ICSharpCode.SharpZipLib.Zip;
+#endif
 
+[InitializeOnLoad]
+public class CheckAndUpdate
+#if NET_4_X
+: IPreprocessBuildWithReport
+#endif
+{
     static CheckAndUpdate()
     {
-        EditorApplication.update += Update;
         Check();
-    }
-
-    private static void Update()
-    {
-        if(!EditorApplication.isUpdating
-            && !EditorApplication.isCompiling)
-        {
-            Check();
-        }
+        EditorApplication.projectChanged += Check;
     }
 
     private static void Check()
     {
+#if !NET_4_X
+        throw new Exception("UnityCef does only work with script runtime version '.NET 4.x Equivalent'.");
+    }
+}
+#else
         CheckGit();
 
         var platform = WebBrowser.CefPlatform;
@@ -80,10 +86,8 @@ public class CheckAndUpdate : IPreprocessBuildWithReport
             Debug.LogWarningFormat("{0} not found.\nMaybe your platform is not supported?", zipFile);
             return;
         }
-
         Debug.LogFormat("Unzipping {0} to {1}...", zipFile, outDir);
-        var fastzipType = Type.GetType(FASTZIP_NAME);
-        dynamic zip = Activator.CreateInstance(fastzipType);
+        var zip = new FastZip();
         zip.ExtractZip(zipFile, outDir, "");
     }
 
@@ -117,3 +121,4 @@ public class CheckAndUpdate : IPreprocessBuildWithReport
         Extract(cefPlatform, outDir);
     }
 }
+#endif
