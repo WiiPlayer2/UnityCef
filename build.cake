@@ -79,7 +79,6 @@ Task("tmp-create")
 });
 
 Task("tmp-clean")
-.IsDependentOn("tmp-create")
 .Does(() =>
 {
     if(DirectoryExists("./tmp"))
