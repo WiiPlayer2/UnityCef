@@ -54,7 +54,7 @@ public class CheckAndUpdate
         var currDir = Path.GetFullPath("./");
         var gitDir = Path.Combine(currDir, ".git");
         var gitignore = Path.Combine(currDir, ".gitignore");
-        if(File.Exists(gitDir))
+        if(Directory.Exists(gitDir))
         {
             var shouldContain = new[]
             {
@@ -72,7 +72,7 @@ public class CheckAndUpdate
             }
             if(warn)
             {
-                Debug.LogFormat("Missing entries in .gitignore. You should add the following entries in your .gitignore file:\n{0}",
+                Debug.LogWarningFormat("Missing entries in .gitignore. Your .gitignore file should contain the following rules:\n\n{0}\n",
                     string.Join("\n", shouldContain));
             }
         }
