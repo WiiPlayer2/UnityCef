@@ -1,3 +1,0 @@
-[submodule "cefglue"]
-	path = cefglue
-	url = https://github.com/OutSystems/CefGlue.git
