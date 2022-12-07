@@ -491,7 +491,10 @@ Task("clean")
 {
     Information("Failed to remove ./cefglue");
     ForceCleanDirectory("./cefglue");
-    DeleteDirectory("./cefglue");
+    DeleteDirectory("./cefglue", new DeleteDirectorySettings()
+    {
+        Recursive = true,
+    });
 })
 .DeferOnError();
 
