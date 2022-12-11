@@ -25,27 +25,25 @@ var target = Argument("target", "Default");
 
 Setup(ctx =>
 {
-    Information("Checking python 2.7 path...");
-    if(string.IsNullOrWhiteSpace(python27_path))
-        python27_path = "python.exe";
+    Information("Checking python path...");
+    if(string.IsNullOrWhiteSpace(pythonPath))
+        pythonPath = "python.exe";
     var success = true;
     try
     {
-        var exitCode = StartProcess(python27_path, new ProcessSettings
+        var exitCode = StartProcess(pythonPath, new ProcessSettings
         {
             Arguments = "-V",
             Silent = true,
             RedirectStandardError = true,
         }, out var _, out var error);
-        if(!string.Join("\n", error).Contains("Python 2.7"))
-            success = false;
     }
     catch(System.ComponentModel.Win32Exception)
     {
         success = false;
     }
     if(!success)
-        throw new ArgumentException($"Invalid python2.7 path ({python27_path})", nameof(python27_path));
+        throw new ArgumentException($"Invalid python path ({pythonPath})", nameof(pythonPath));
 
     Information($"Checking Unity version \"{unity_version}\"...");
     if(!TryGetUnityInstall(unity_version, out var __))
@@ -111,8 +109,8 @@ Task("cef-automate-git")
 .Does(() => {
     EnsureDirectoryExists(cef_download_dir);
     DownloadFile("https://bitbucket.org/chromiumembedded/cef/raw/master/tools/automate/automate-git.py", "./tmp/automate-git.py");
-    //StartProcess(python27_path, $"./tmp/automate-git.py \"--download-dir={cef_download_dir}\" --branch={cef_branch} --no-build");
-    StartProcess(python27_path, new ProcessSettings
+    //StartProcess(pythonPath, $"./tmp/automate-git.py \"--download-dir={cef_download_dir}\" --branch={cef_branch} --no-build");
+    StartProcess(pythonPath, new ProcessSettings
     {
         Arguments = $"./tmp/automate-git.py \"--download-dir={cef_download_dir}\" --branch={cef_branch} --force-build --force-distrib --x64-build --no-debug-build",
         EnvironmentVariables = new Dictionary<string, string>
@@ -127,7 +125,7 @@ Task("cef-automate-git")
 Task("cef-download")
 .IsDependentOn("tmp-create")
 .DoesForEach(cefPlatforms, (platform) => {
-    var dlUrl = $"http://opensource.spotify.com/cefbuilds/cef_binary_{cef_version}_{platform}.tar.bz2";
+    var dlUrl = $"https://cef-builds.spotifycdn.com/cef_binary_{cef_version}_{platform}.tar.bz2";
     var fileName = $"./tmp/cef_binary_{cef_version}_{platform}.tar.bz2";
 
     if(!FileExists(fileName))
@@ -215,7 +213,7 @@ Task("cefglue-generate-files")
 //.WithCriteria(!CheckTimestamp("./cefglue/CefGlue.Interop.Gen/include"))
 .Does(() => {
     Information("Generate interop source files...");
-    StartProcess(python27_path, new ProcessSettings
+    StartProcess(pythonPath, new ProcessSettings
     {
         Arguments = @"-B cefglue_interop_gen.py --schema cef3 --cpp-header-dir include --cefglue-dir ..\CefGlue\ --no-backup",
         RedirectStandardOutput = true,
@@ -234,14 +232,14 @@ Task("cefglue-csproj")
     Information("Update source files in project...");
     var dir = new DirectoryPath("./cefglue/CefGlue")
         .MakeAbsolute(Context.Environment);
-    var compileOutputBuilder = new StringBuilder();
-    foreach(var f in GetFiles("./cefglue/CefGlue/**/*.cs"))
-    {
-        var path = dir.GetRelativePath(f).FullPath.Replace('/', '\\');
-        compileOutputBuilder.AppendLine($"    <Compile Include=\"{path}\" />");
-    }
-    compileOutputBuilder.AppendLine("    <None Include=\"..\\Xilium.CefGlue.snk\">\n      <Link>Properties\\Xilium.CefGlue.snk</Link>\n    </None>");
-    XmlPoke("./cefglue/CefGlue/CefGlue.csproj", "//*[local-name() = 'Compile']/..", compileOutputBuilder.ToString());
+    // var compileOutputBuilder = new StringBuilder();
+    // // foreach(var f in GetFiles("./cefglue/CefGlue/**/*.cs"))
+    // // {
+    // //     var path = dir.GetRelativePath(f).FullPath.Replace('/', '\\');
+    // //     compileOutputBuilder.AppendLine($"    <Compile Include=\"{path}\" />");
+    // // }
+    // // compileOutputBuilder.AppendLine("    <None Include=\"..\\Xilium.CefGlue.snk\">\n      <Link>Properties\\Xilium.CefGlue.snk</Link>\n    </None>");
+    // XmlPoke("./cefglue/CefGlue/CefGlue.csproj", "//*[local-name() = 'Compile']/..", compileOutputBuilder.ToString());
 
     SetTimestamp("./cefglue/CefGlue/CefGlue.csproj");
 });
@@ -251,10 +249,16 @@ Task("cefglue-build")
 .WithCriteria(() => !CheckTimestamp("./cefglue/CefGlue/CefGlue.csproj"))
 .Does(() => {
     Information("Building cefglue...");
-    MSBuild("./cefglue/CefGlue/CefGlue.csproj", config =>
-        config.SetConfiguration("Release")
-            .SetVerbosity(msbuild_verbosity)
-            .WithConsoleLoggerParameter("ErrorsOnly"));
+    DotNetBuild("./cefglue/CefGlue/CefGlue.csproj", new DotNetBuildSettings(){
+        Configuration = "Release",
+        Verbosity = msbuild_verbosity switch {
+            Verbosity.Verbose => DotNetVerbosity.Detailed,
+            Verbosity.Diagnostic => DotNetVerbosity.Diagnostic,
+            Verbosity.Minimal => DotNetVerbosity.Minimal,
+            Verbosity.Normal => DotNetVerbosity.Normal,
+            Verbosity.Quiet => DotNetVerbosity.Quiet,
+        },
+    });
     SetTimestamp("./cefglue/CefGlue/bin/Release");
 });
 
