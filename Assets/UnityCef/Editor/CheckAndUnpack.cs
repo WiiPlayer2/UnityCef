@@ -1,7 +1,3 @@
-#if NET_4_6 || NET_STANDARD_2_0
-#define NET_4_X
-#endif
-
 using System;
 using System.IO;
 using System.Linq;
@@ -10,17 +6,11 @@ using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
-
-#if NET_4_X
 using ICSharpCode.SharpZipLib.Core;
 using ICSharpCode.SharpZipLib.Zip;
-#endif
 
 [InitializeOnLoad]
-public class CheckAndUpdate
-#if NET_4_X
-: IPreprocessBuildWithReport
-#endif
+public class CheckAndUpdate : IPreprocessBuildWithReport
 {
     static CheckAndUpdate()
     {
@@ -30,15 +20,8 @@ public class CheckAndUpdate
 
     private static void Check()
     {
-#if !NET_4_X
-        throw new Exception("UnityCef does only work with scripting runtime version '.NET 4.x Equivalent'.");
-    }
-}
-#else
-        CheckGit();
-
         var platform = WebBrowser.CefPlatform;
-        var cefDir = Path.GetFullPath(string.Format("./cef_{0}", platform));
+        var cefDir = Path.GetFullPath($"./cef_{platform}");
         var hashFile = Path.Combine(cefDir, "hash");
 
         if(!Directory.Exists(cefDir)
@@ -49,38 +32,9 @@ public class CheckAndUpdate
         }
     }
 
-    private static void CheckGit()
-    {
-        var currDir = Path.GetFullPath("./");
-        var gitDir = Path.Combine(currDir, ".git");
-        var gitignore = Path.Combine(currDir, ".gitignore");
-        if(Directory.Exists(gitDir))
-        {
-            var shouldContain = new[]
-            {
-                "cef_*",
-                "*.log",
-                "blob_storage",
-                "GPUCache",
-            };
-            var warn = true;
-            if(File.Exists(gitignore))
-            {
-                var lines = File.ReadAllLines(gitignore);
-                if(shouldContain.Aggregate(true, (acc, curr) => acc && lines.Contains(curr)))
-                    warn = false;
-            }
-            if(warn)
-            {
-                Debug.LogWarningFormat("Missing entries in .gitignore. Your .gitignore file should contain the following rules:\n\n{0}\n",
-                    string.Join("\n", shouldContain));
-            }
-        }
-    }
-
     private static void Extract(string platform, string outDir)
     {
-        var zipFile = Path.GetFullPath(string.Format("./Assets/UnityCef/Companion/{0}.zip", platform));
+        var zipFile = Path.GetFullPath($"./Assets/UnityCef/Companion/{platform}.zip");
         if(!File.Exists(zipFile))
         {
             Debug.LogWarningFormat("{0} not found.\nMaybe your platform is not supported?", zipFile);
@@ -91,7 +45,7 @@ public class CheckAndUpdate
         zip.ExtractZip(zipFile, outDir, "");
     }
 
-    public int callbackOrder { get { return 0; } }
+    public int callbackOrder => 0;
 
     public void OnPreprocessBuild(BuildReport report)
     {
@@ -103,22 +57,19 @@ public class CheckAndUpdate
             return;
         }
 
-        var cefPlatform = "";
+        string cefPlatform;
         switch(platform)
         {
-            case BuildTarget.StandaloneWindows:
-                cefPlatform = "windows32";
-                break;
             case BuildTarget.StandaloneWindows64:
-                cefPlatform = "windows64";
+                cefPlatform = "win-x64";
                 break;
+
             default:
                 Debug.LogWarningFormat("UnityCef is not supported on {0}.", platform);
                 return;
         }
 
-        var outDir = Path.Combine(Path.GetDirectoryName(report.summary.outputPath), "cef");
+        var outDir = Path.Combine(Path.GetDirectoryName(report.summary.outputPath)!, "cef");
         Extract(cefPlatform, outDir);
     }
 }
-#endif

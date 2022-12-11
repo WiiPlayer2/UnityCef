@@ -46,7 +46,9 @@ namespace UnityCef.Companion.Cef
 
         protected override bool GetRootScreenRect(CefBrowser browser, ref CefRectangle rect)
         {
-            return GetViewRect(browser, ref rect);
+            GetViewRect(browser, out var viewRect);
+            rect = viewRect;
+            return true;
         }
 
         protected override bool GetScreenInfo(CefBrowser browser, CefScreenInfo screenInfo)
@@ -61,17 +63,15 @@ namespace UnityCef.Companion.Cef
             return true;
         }
 
-        protected override bool GetViewRect(CefBrowser browser, ref CefRectangle rect)
+        protected override void GetViewRect(CefBrowser browser, out CefRectangle rect)
         {
-            rect.X = 0;
-            rect.Y = 0;
-            rect.Width = width;
-            rect.Height = height;
-            return true;
-        }
-
-        protected override void OnCursorChange(CefBrowser browser, IntPtr cursorHandle, CefCursorType type, CefCursorInfo customCursorInfo)
-        {
+            rect = new CefRectangle
+            {
+                X = 0,
+                Y = 0,
+                Width = width,
+                Height = height,
+            };
         }
 
         protected override void OnImeCompositionRangeChanged(CefBrowser browser, CefRange selectedRange, CefRectangle[] characterBounds)
@@ -85,6 +85,11 @@ namespace UnityCef.Companion.Cef
             Marshal.Copy(buffer, imageData, 0, imageData.Length);
 
             sharedBuffer.CopyFrom(imageData);
+        }
+
+        protected override void OnAcceleratedPaint(CefBrowser browser, CefPaintElementType type, CefRectangle[] dirtyRects, IntPtr sharedHandle)
+        {
+            throw new NotImplementedException();
         }
 
         protected override void OnPopupSize(CefBrowser browser, CefRectangle rect)
