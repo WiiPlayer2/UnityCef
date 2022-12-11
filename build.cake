@@ -38,7 +38,7 @@ bool GitHasUncommitedChangesHACK(DirectoryPath repositoryPath)
 // ARGUMENTS
 ///////////////////////////////////////////////////////////////////////////////
 
-var target = Argument("target", "Default");
+var target = Argument("target", "update-dev");
 var packageVersion = Argument("version", "dev");
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -171,5 +171,9 @@ Task("generate-hash-unity")
 Task("generate-hash")
 .IsDependentOn("generate-hash-companion")
 .IsDependentOn("generate-hash-unity");
+
+Task("update-dev")
+.IsDependentOn("pack-companion")
+.IsDependentOn("copy-libraries");
 
 RunTarget(target);
