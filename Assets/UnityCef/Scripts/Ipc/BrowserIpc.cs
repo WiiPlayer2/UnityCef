@@ -36,7 +36,7 @@ namespace UnityCef.Unity.Ipc
 
             if (Texture.width != textureWidth
                 || Texture.height != textureHeight)
-                Texture.Resize(textureWidth, textureHeight);
+                Texture.Reinitialize(textureWidth, textureHeight);
 
             textureName = GetSharedName();
             textureBuffer = new SharedBuffer(textureName, textureData.Length);

@@ -1,5 +1,5 @@
 var package_version = new Version("0.2");
-var unity_version = "Unity 2018.2.10f1 (64-bit)";
+var unity_version = "Unity 2021.3.15f1";
 var cef_version = "102.0.10+gf249b2e+chromium-102.0.5005.115";
 var cef_branch = "5005";
 var cefglue_branch = "5005";
