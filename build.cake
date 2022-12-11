@@ -3,12 +3,36 @@
 #addin nuget:?package=Cake.Unity&version=0.9.0
 #addin nuget:?package=Cake.Yaml&version=4.0.0
 #addin nuget:?package=YamlDotNet&version=6.1.2
+#addin nuget:?package=Cake.Git&version=2.0.0
+#addin nuget:?package=Cake.FileHelpers&version=5.0.0
 
 const string CONFIGURATION = "Release";
 readonly string[] platforms = new[]
 {
    "win-x64",
 };
+
+//HACK: Uses git executable even though Cake.Git is being used (but does not report the correct dirty status)
+bool GitHasUncommitedChangesHACK(DirectoryPath repositoryPath)
+{
+   try
+   {
+      var exitCode = StartProcess("git", new ProcessSettings
+      {
+         Arguments = "diff --exit-code",
+         WorkingDirectory = repositoryPath,
+         RedirectStandardOutput = true,
+         RedirectStandardError = true,
+         Silent = true,
+      });
+      return exitCode == 1;
+   }
+   catch(Exception e)
+   {
+      Error(e);
+      return true;
+   }
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // ARGUMENTS
@@ -22,6 +46,7 @@ var packageVersion = Argument("version", "dev");
 ///////////////////////////////////////////////////////////////////////////////
 
 UnityEditorDescriptor unityEditor = default!;
+string currentHash = default!;
 
 Setup(ctx =>
 {
@@ -32,6 +57,25 @@ Setup(ctx =>
    if(unityEditor is null)
       Error($"Unity {unityVersion} was not found.");
    Information($"Found Unity {unityVersion} at {unityEditor.Path}");
+
+   Information("Get current hash...");
+   if(GitIsValidRepository("."))
+   {
+      var currentBranch = GitBranchCurrent(".");
+      var lastCommit = currentBranch.Tip;
+      currentHash = lastCommit.Sha;
+      if(GitHasUncommitedChangesHACK("."))
+      {
+         Warning("Repository has uncommited changes. Appending \"-dirty\" to hash.");
+         currentHash += "-dirty";
+      }
+   }
+   else
+   {
+      Warning("Not building from repository. Hash will be \"nogit\".");
+      currentHash = "nogit";
+   }
+   Information($"Current hash is \"{currentHash}\"");
 });
 
 Teardown(ctx =>
@@ -68,6 +112,7 @@ Task("copy-libraries")
 
 Task("pack-companion")
 .IsDependentOn("build-companion")
+.IsDependentOn("generate-hash-companion")
 .DoesForEach(platforms, platform =>
 {
    var companionDirectory = $"./Builds/companion/{platform}";
@@ -79,6 +124,7 @@ Task("pack-companion")
 
 Task("pack-unity")
 .IsDependentOn("pack-companion")
+.IsDependentOn("generate-hash")
 .Does(() => {
    var outPath = $"./UnityCef-{packageVersion}.unitypackage";
    Information($"Packing {outPath}...");
@@ -101,5 +147,29 @@ Task("pack-unity")
       }
    );
 });
+
+Task("generate-hash-companion")
+.IsDependentOn("build-companion")
+.DoesForEach(platforms, platform =>
+{
+   var path = $"./cef_{platform}/.hash";
+   Information($"Generating {path}...");
+   FileWriteText(path, currentHash);
+});
+
+Task("generate-hash-unity")
+.Does(() =>
+{
+   var path = "./Assets/UnityCef/Editor/Constants.g.cs";
+   Information($"Generating {path}...");
+   var constantsCode = TransformTextFile("./Assets/UnityCef/Editor/Constants.g.cs.template")
+      .WithToken($"hash", currentHash)
+      .ToString();
+   FileWriteText(path, constantsCode);
+});
+
+Task("generate-hash")
+.IsDependentOn("generate-hash-companion")
+.IsDependentOn("generate-hash-unity");
 
 RunTarget(target);

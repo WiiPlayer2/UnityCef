@@ -20,8 +20,6 @@ public class CheckAndUpdate : IPreprocessBuildWithReport
 
     private static void Check()
     {
-        CheckGit();
-
         var platform = WebBrowser.CefPlatform;
         var cefDir = Path.GetFullPath($"./cef_{platform}");
         var hashFile = Path.Combine(cefDir, "hash");
@@ -31,35 +29,6 @@ public class CheckAndUpdate : IPreprocessBuildWithReport
             || File.ReadAllText(hashFile) != Constants.HASH)
         {
             Extract(platform, cefDir);
-        }
-    }
-
-    private static void CheckGit()
-    {
-        var currDir = Path.GetFullPath("./");
-        var gitDir = Path.Combine(currDir, ".git");
-        var gitignore = Path.Combine(currDir, ".gitignore");
-        if(Directory.Exists(gitDir))
-        {
-            var shouldContain = new[]
-            {
-                "cef_*",
-                "*.log",
-                "blob_storage",
-                "GPUCache",
-            };
-            var warn = true;
-            if(File.Exists(gitignore))
-            {
-                var lines = File.ReadAllLines(gitignore);
-                if(shouldContain.Aggregate(true, (acc, curr) => acc && lines.Contains(curr)))
-                    warn = false;
-            }
-            if(warn)
-            {
-                Debug.LogWarningFormat("Missing entries in .gitignore. Your .gitignore file should contain the following rules:\n\n{0}\n",
-                    string.Join("\n", shouldContain));
-            }
         }
     }
 
