@@ -249,9 +249,11 @@ Task("cefglue-build")
 .WithCriteria(() => !CheckTimestamp("./cefglue/CefGlue/CefGlue.csproj"))
 .Does(() => {
     Information("Building cefglue...");
-    DotNetBuild("./cefglue/CefGlue/CefGlue.csproj", new DotNetBuildSettings(){
+    DotNetBuild("./cefglue/CefGlue/CefGlue.csproj", new DotNetBuildSettings()
+    {
         Configuration = "Release",
-        Verbosity = msbuild_verbosity switch {
+        Verbosity = msbuild_verbosity switch
+        {
             Verbosity.Verbose => DotNetVerbosity.Detailed,
             Verbosity.Diagnostic => DotNetVerbosity.Diagnostic,
             Verbosity.Minimal => DotNetVerbosity.Minimal,
@@ -273,14 +275,24 @@ Task("companion-clean")
 Task("companion-build")
 .IsDependentOn("cefglue-build")
 .WithCriteria(!CheckTimestamps("./cefglue/CefGlue/bin/Release", "./UnityCef.Companion"))
-.DoesForEach(new[]{ PlatformTarget.x86, PlatformTarget.x64 }, platform =>
+.DoesForEach(new[]{ "win-x86", "win-x64" }, platform =>
 {
     Information($"Building companion app ({platform})...");
-    NuGetRestore("./UnityCef.Companion/UnityCef.Companion.sln");
-    MSBuild("./UnityCef.Companion/UnityCef.Companion.sln", config =>
-        config.SetConfiguration("Release")
-            .SetVerbosity(msbuild_verbosity)
-            .SetPlatformTarget(platform));
+    DotNetBuild("./UnityCef.Companion/UnityCef.Companion/UnityCef.Companion.csproj", new DotNetBuildSettings()
+    {
+        Configuration = "Release",
+        Verbosity = msbuild_verbosity switch
+        {
+            Verbosity.Verbose => DotNetVerbosity.Detailed,
+            Verbosity.Diagnostic => DotNetVerbosity.Diagnostic,
+            Verbosity.Minimal => DotNetVerbosity.Minimal,
+            Verbosity.Normal => DotNetVerbosity.Normal,
+            Verbosity.Quiet => DotNetVerbosity.Quiet,
+        },
+        Runtime = platform,
+        ArgumentCustomization = builder => builder
+            .Append("--self-contained"),
+    });
     SetTimestamp($"./UnityCef.Companion");
 });
 
