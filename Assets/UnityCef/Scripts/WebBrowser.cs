@@ -13,7 +13,14 @@ using Debug = UnityEngine.Debug;
 
 public class WebBrowser : MonoBehaviour
 {
-    #region Static
+#if UNITY_EDITOR_64
+    private const string ARCH = "x64";
+#endif
+#if UNITY_EDITOR_WIN
+    private const string PLATFORM = "win";
+#endif
+
+#region Static
     private static readonly string companionPath;
     private static readonly object refCountLock = new object();
     private static int refCount = 0;
@@ -76,25 +83,7 @@ public class WebBrowser : MonoBehaviour
         }
     }
 
-    public static string CefPlatform
-    {
-        get
-        {
-            var arch = "";
-            var platform = "";
-
-#if UNITY_EDITOR_64
-            arch = "64";
-#elif UNITY_EDITOR_32
-            arch = "32";
-#endif
-
-#if UNITY_EDITOR_WIN
-            platform = "windows";
-#endif
-            return string.Format("{0}{1}", platform, arch);
-        }
-    }
+    public static string CefPlatform => $"{PLATFORM}-{ARCH}";
 
     private static void StartCompanion()
     {
@@ -124,7 +113,7 @@ public class WebBrowser : MonoBehaviour
             ipc = null;
         }
     }
-    #endregion
+#endregion
 
     public int Width = 800;
     public int Height = 600;
