@@ -13,10 +13,10 @@ using Debug = UnityEngine.Debug;
 
 public class WebBrowser : MonoBehaviour
 {
-#if UNITY_EDITOR_64
+#if UNITY_64
     private const string ARCH = "x64";
 #endif
-#if UNITY_EDITOR_WIN
+#if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
     private const string PLATFORM = "win";
 #endif
 
