@@ -34,7 +34,6 @@ namespace UnityCef.Companion.Ipc
             {
                 JavaScript = CefState.Enabled,
                 WebGL = CefState.Enabled,
-                WebSecurity = CefState.Disabled,
                 WindowlessFrameRate = 30,
             };
 

@@ -2,6 +2,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net471</TargetFramework>
+	  <RuntimeIdentifiers>win7-x64;win7-x86</RuntimeIdentifiers>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <AssemblyTitle>UnityCef.Companion</AssemblyTitle>
     <Product>UnityCef.Companion</Product>
@@ -11,12 +12,10 @@
     <StartupObject />
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="CefGlue.Common" Version="91.4472.31" />
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
     <PackageReference Include="Microsoft.CSharp" Version="4.5.0" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
-    <Reference Include="Xilium.CefGlue">
-      <HintPath>..\..\cefglue\CefGlue\bin\Release\Xilium.CefGlue.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\UnityCef.Shared\UnityCef.Shared.csproj" />
