@@ -1,5 +1,8 @@
 #addin nuget:?package=SharpZipLib&version=1.4.1
 #addin nuget:?package=Cake.Compression&version=0.3.0
+#addin nuget:?package=Cake.Unity&version=0.9.0
+#addin nuget:?package=Cake.Yaml&version=4.0.0
+#addin nuget:?package=YamlDotNet&version=6.1.2
 
 const string CONFIGURATION = "Release";
 readonly string[] platforms = new[]
@@ -12,15 +15,23 @@ readonly string[] platforms = new[]
 ///////////////////////////////////////////////////////////////////////////////
 
 var target = Argument("target", "Default");
+var packageVersion = Argument("version", "dev");
 
 ///////////////////////////////////////////////////////////////////////////////
 // SETUP / TEARDOWN
 ///////////////////////////////////////////////////////////////////////////////
 
+UnityEditorDescriptor unityEditor = default!;
+
 Setup(ctx =>
 {
-   // Executed BEFORE the first task.
-   Information("Running tasks...");
+   Information("Find Unity version...");
+   var unityProjectVersionValues = DeserializeYamlFromFile<Dictionary<string, string>>("./ProjectSettings/ProjectVersion.txt");
+   var unityVersion = UnityVersion.Parse(unityProjectVersionValues["m_EditorVersion"]);
+   unityEditor = FindUnityEditor(unityVersion.Year, unityVersion.Stream, unityVersion.Update);
+   if(unityEditor is null)
+      Error($"Unity {unityVersion} was not found.");
+   Information($"Found Unity {unityVersion} at {unityEditor.Path}");
 });
 
 Teardown(ctx =>
@@ -64,6 +75,31 @@ Task("pack-companion")
    EnsureDirectoryExists("./Assets/UnityCef/Companion");
    Information($"Zipping {companionDirectory} to {zipFile}...");
    ZipCompress(companionDirectory, zipFile);
+});
+
+Task("pack-unity")
+.IsDependentOn("pack-companion")
+.Does(() => {
+   var outPath = $"./UnityCef-{packageVersion}.unitypackage";
+   Information($"Packing {outPath}...");
+   var files = GetFiles("./Assets/UnityCef/*");
+   UnityEditor(
+      unityEditor,
+      new UnityEditorArguments()
+      {
+         ProjectPath = "./",
+         ExportPackage = new ExportPackage()
+         {
+            PackageName = outPath,
+            AssetPaths = new[]{"Assets/UnityCef"},
+         },
+         LogFile = "./unity.log",
+      },
+      new UnityEditorSettings()
+      {
+         RealTimeLog = true,
+      }
+   );
 });
 
 RunTarget(target);
